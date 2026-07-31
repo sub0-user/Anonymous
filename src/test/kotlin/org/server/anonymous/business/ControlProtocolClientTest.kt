@@ -1,5 +1,6 @@
 package org.server.anonymous.business
 
+import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertThrows
@@ -29,13 +30,15 @@ class ControlProtocolClientTest {
                 socket.use { s ->
                     val reader = BufferedReader(InputStreamReader(s.getInputStream(), StandardCharsets.US_ASCII))
                     val writer = BufferedWriter(OutputStreamWriter(s.getOutputStream(), StandardCharsets.US_ASCII))
-                    writer.write("250 OK\n")
-                    writer.flush()
                     while (true) {
                         val line = reader.readLine() ?: break
                         val reply =
-                            replies.entries.firstOrNull { line.startsWith(it.key) }?.value
-                                ?: "510 Unrecognized command\n"
+                            if (line.startsWith("PROTOCOLINFO")) {
+                                "250-PROTOCOLINFO 1\n250-AUTH METHODS=COOKIE\n250 OK\n"
+                            } else {
+                                replies.entries.firstOrNull { line.startsWith(it.key) }?.value
+                                    ?: "510 Unrecognized command\n"
+                            }
                         writer.write(reply)
                         writer.flush()
                     }
@@ -108,6 +111,19 @@ class ControlProtocolClientTest {
             client.addOnionService(ByteArray(32), 80, "127.0.0.1", 9000)
         }
         client.close()
+    }
+
+    @Test
+    fun `tor key blob is 64 bytes with the seed prefix and a clamped scalar`() {
+        val client = ControlProtocolClient()
+        val seed = ByteArray(32) { it.toByte() }
+        val blob = client.torKeyBlob(seed)
+        assertEquals(64, blob.size)
+        assertArrayEquals(seed, blob.copyOfRange(0, 32))
+        // Clamp: low 3 bits of byte 0 cleared, bit 6 of byte 31 set, bit 7 cleared.
+        assertEquals(0, blob[32].toInt() and 0x07)
+        assertEquals(0x40, blob[63].toInt() and 0x40)
+        assertEquals(0, blob[63].toInt() and 0x80)
     }
 
     private fun freePort(): Int = ServerSocket(0).use { it.localPort }

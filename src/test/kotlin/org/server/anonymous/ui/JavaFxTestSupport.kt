@@ -14,7 +14,7 @@ object JavaFxTestSupport {
             !System.getenv("WAYLAND_DISPLAY").isNullOrEmpty()
 
     @Synchronized
-    private fun startToolkit() {
+    fun init() {
         if (started || Platform.isFxApplicationThread()) return
         val latch = CountDownLatch(1)
         Platform.startup {
@@ -26,7 +26,7 @@ object JavaFxTestSupport {
 
     fun <T> onFxThread(block: () -> T): T {
         assumeTrue(hasDisplay(), "Skipping FX test: no display available (use xvfb-run on headless CI)")
-        startToolkit()
+        init()
         if (Platform.isFxApplicationThread()) return block()
         var result: T? = null
         var error: Throwable? = null

@@ -35,6 +35,8 @@ class AnonymousApplication : Application() {
         stage.minHeight = 600.0
         stage.scene = scene
         stage.show()
+        appGraph.start()
+        Runtime.getRuntime().addShutdownHook(Thread { appGraph.stop() })
     }
 
     companion object {
