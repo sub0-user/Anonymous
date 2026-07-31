@@ -66,7 +66,11 @@
     -fx-background-radius: 10;
     -fx-padding: 12;
 }
-.chat-header { -fx-background-color: #12161c; -fx-border-color: transparent transparent #1d232b transparent; }
+.chat-header {
+    -fx-background-color: #12161c;
+    -fx-border-color: transparent transparent #1d232b transparent;
+    -fx-padding: 10 14;
+}
 .chat-title { -fx-text-fill: #e6e9ee; -fx-font-size: 15px; -fx-font-weight: bold; }
 .chat-pane { -fx-background-color: #0b0e11; }
 .bubble { -fx-background-radius: 9; -fx-padding: 6 9; }
@@ -74,5 +78,9 @@
 .bubble-in { -fx-background-color: #1d232b; }
 .bubble-text { -fx-text-fill: white; -fx-font-size: 13px; }
 .bubble-meta { -fx-text-fill: rgba(255, 255, 255, 0.65); -fx-font-size: 10px; }
-.composer { -fx-background-color: #12161c; -fx-border-color: #1d232b transparent transparent transparent; }
+.composer {
+    -fx-background-color: #12161c;
+    -fx-border-color: #1d232b transparent transparent transparent;
+    -fx-padding: 10 14;
+}
 .error-text { -fx-text-fill: #e06c75; -fx-font-size: 11px; }

@@ -9,7 +9,7 @@
 <BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="org.server.anonymous.controller.ChatController" styleClass="chat-pane">
     <top>
-        <VBox spacing="2.0" styleClass="chat-header" padding="10.0 14.0">
+        <VBox spacing="2.0" styleClass="chat-header">
             <Label fx:id="titleLabel" styleClass="chat-title"/>
             <Label fx:id="subtitleLabel" styleClass="status-text"/>
         </VBox>
@@ -18,7 +18,7 @@
         <ListView fx:id="messageList" styleClass="message-list"/>
     </center>
     <bottom>
-        <HBox styleClass="composer" spacing="8.0" alignment="CENTER_LEFT" padding="10.0 14.0">
+        <HBox styleClass="composer" spacing="8.0" alignment="CENTER_LEFT">
             <TextField fx:id="draftField" promptText="message…" styleClass="composer-field"
                        HBox.hgrow="ALWAYS" onAction="#onSendClicked"/>
             <Button fx:id="sendButton" text="Send" onAction="#onSendClicked" styleClass="accent-button" mnemonicParsing="false"/>
