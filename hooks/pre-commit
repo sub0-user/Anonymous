@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Anonymous pre-commit hook: privacy law + quality gate.
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+
+# 1) Privacy law: refuse to commit any private/internal path.
+PRIVATE_PATHS='^(AGENTS\.md|CLAUDE\.md|CHANGELOG\.md|doc/|guide/dev/)'
+if git diff --cached --name-only | grep -Eq "$PRIVATE_PATHS"; then
+  echo "❌ Pre-commit rejected: staged file(s) under a private path (AGENTS.md, CLAUDE.md, CHANGELOG.md, doc/, guide/dev/)."
+  echo "   These are gitignored internal docs. Unstage them:"
+  echo "   git reset HEAD <files>"
+  exit 1
+fi
+
+# 2) Quality gate.
+echo "🔍 Running quality gate: ktlint + detekt + tests…"
+./gradlew --quiet ktlintCheck detekt test
+echo "✅ Quality gate passed."

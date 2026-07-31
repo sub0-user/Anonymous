@@ -1,0 +1,86 @@
+/* Onion Dark — locked palette (doc/design/onion-dark-v1.md). No ad-hoc hex anywhere else. */
+.root-panel { -fx-background-color: #0b0e11; }
+.content-panel { -fx-background-color: #0b0e11; }
+.sidebar { -fx-background-color: #12161c; -fx-padding: 12 10 12 10; -fx-spacing: 10; }
+.sidebar-header { -fx-padding: 0 4 8 4; }
+.app-title { -fx-text-fill: #e6e9ee; -fx-font-size: 16px; -fx-font-weight: bold; }
+
+.search-field,
+.composer-field {
+    -fx-background-color: #0b0e11;
+    -fx-border-color: #1d232b;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-text-fill: #c7cdd6;
+    -fx-prompt-text-fill: #6b7683;
+}
+.search-field { -fx-padding: 6 8; }
+
+.chat-list,
+.message-list {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+.list-cell { -fx-background-color: transparent; -fx-text-fill: #c7cdd6; -fx-padding: 2; }
+.list-cell:filled:selected { -fx-background-color: #1d232b; -fx-background-radius: 6; }
+.contact-row { -fx-padding: 6 8; }
+.contact-alias { -fx-text-fill: #e6e9ee; -fx-font-size: 13px; }
+.contact-address { -fx-text-fill: #6b7683; -fx-font-size: 11px; }
+
+.accent-button {
+    -fx-background-color: #7b6cf6;
+    -fx-text-fill: white;
+    -fx-background-radius: 6;
+    -fx-font-size: 12px;
+    -fx-padding: 6 12;
+}
+.accent-button:hover { -fx-background-color: #8f81ff; }
+.accent-button:disabled { -fx-background-color: #3a3460; }
+.ghost-button {
+    -fx-background-color: #1d232b;
+    -fx-text-fill: #c7cdd6;
+    -fx-background-radius: 6;
+    -fx-font-size: 11px;
+    -fx-padding: 6 10;
+}
+.ghost-button:hover { -fx-background-color: #2a3340; }
+
+.identity-view { -fx-background-color: #0b0e11; -fx-padding: 32; -fx-spacing: 10; }
+.identity-title { -fx-text-fill: #e6e9ee; -fx-font-size: 22px; -fx-font-weight: bold; }
+.muted-text { -fx-text-fill: #6b7683; -fx-font-size: 11px; }
+.label-caption { -fx-text-fill: #6b7683; -fx-font-size: 10px; -fx-font-weight: bold; }
+.address-card {
+    -fx-background-color: #12161c;
+    -fx-border-color: #1d232b;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-padding: 12;
+}
+.mono { -fx-font-family: 'Courier New', monospace; -fx-text-fill: #c7cdd6; }
+.status-dot { -fx-fill: #4f9e7a; }
+.status-text { -fx-text-fill: #4f9e7a; -fx-font-size: 11px; }
+.settings-box {
+    -fx-background-color: #12161c;
+    -fx-border-color: #1d232b;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-padding: 12;
+}
+.chat-header {
+    -fx-background-color: #12161c;
+    -fx-border-color: transparent transparent #1d232b transparent;
+    -fx-padding: 10 14;
+}
+.chat-title { -fx-text-fill: #e6e9ee; -fx-font-size: 15px; -fx-font-weight: bold; }
+.chat-pane { -fx-background-color: #0b0e11; }
+.bubble { -fx-background-radius: 9; -fx-padding: 6 9; }
+.bubble-out { -fx-background-color: #7b6cf6; }
+.bubble-in { -fx-background-color: #1d232b; }
+.bubble-text { -fx-text-fill: white; -fx-font-size: 13px; }
+.bubble-meta { -fx-text-fill: rgba(255, 255, 255, 0.65); -fx-font-size: 10px; }
+.composer {
+    -fx-background-color: #12161c;
+    -fx-border-color: #1d232b transparent transparent transparent;
+    -fx-padding: 10 14;
+}
+.error-text { -fx-text-fill: #e06c75; -fx-font-size: 11px; }

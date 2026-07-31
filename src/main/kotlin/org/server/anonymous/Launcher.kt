@@ -2,6 +2,9 @@ package org.server.anonymous
 
 import javafx.application.Application
 
-fun main() {
-    Application.launch(HelloApplication::class.java)
+object Launcher {
+    @JvmStatic
+    fun main(args: Array<String>) {
+        Application.launch(AnonymousApplication::class.java)
+    }
 }
