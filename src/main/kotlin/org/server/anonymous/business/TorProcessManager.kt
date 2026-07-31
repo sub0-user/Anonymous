@@ -45,6 +45,9 @@ class TorProcessManager(
                 root.resolve("data").toString(),
                 "--ControlPort",
                 "127.0.0.1:$controlPort",
+                // Required so tor writes data/control_auth_cookie for our AUTHENTICATE.
+                "--CookieAuthentication",
+                "1",
                 "--SocksPort",
                 "127.0.0.1:$socksPort",
                 "--ClientOnly",
@@ -83,7 +86,7 @@ class TorProcessManager(
         val platform = torPlatform()
         val base = "tor/$platform"
         val manifest =
-            TorProcessManager::class.java.getResourceAsStream("$base/manifest.txt")
+            TorProcessManager::class.java.getResourceAsStream("/$base/manifest.txt")
                 ?: error("Bundled Tor missing for '$platform' — run ./gradlew downloadTor")
         Files.createDirectories(root)
         manifest.bufferedReader().useLines { lines ->
@@ -92,13 +95,14 @@ class TorProcessManager(
                 val out = root.resolve(rel)
                 Files.createDirectories(out.parent)
                 TorProcessManager::class.java
-                    .getResourceAsStream("$base/$rel")
+                    .getResourceAsStream("/$base/$rel")
                     ?.use { src -> Files.newOutputStream(out).use { src.copyTo(it) } }
                     ?: error("Bundled Tor file missing: $rel")
             }
         }
         val binary =
-            torBinaryCandidates(root).firstOrNull { Files.isExecutable(it) }
+            // Files.copy does not preserve the exec bit, so match by existence, then chmod.
+            torBinaryCandidates(root).firstOrNull { Files.exists(it) }
                 ?: error("No executable tor found in the bundle")
         if (!System.getProperty("os.name").lowercase().contains("win")) {
             binary.toFile().setExecutable(true)
