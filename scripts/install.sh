@@ -75,7 +75,14 @@ rm -rf "$PREFIX"/*
 cp -r "$INNER"/. "$PREFIX"/
 
 chmod +x "$PREFIX/bin/anonymous" 2>/dev/null || true
-ln -sf "$PREFIX/bin/anonymous" "$BIN_DIR/anonymous"
+# Wrapper script, NOT a symlink: jlink launchers resolve their own path, so a symlink
+# would look for java next to the symlink instead of inside the installed app image.
+rm -f "$BIN_DIR/anonymous"
+cat > "$BIN_DIR/anonymous" <<EOF
+#!/usr/bin/env bash
+exec "$PREFIX/bin/anonymous" "\$@"
+EOF
+chmod +x "$BIN_DIR/anonymous"
 
 if [ "$CREATE_DESKTOP" = "1" ]; then
   mkdir -p "$HOME/.local/share/applications"
