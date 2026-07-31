@@ -1,8 +1,12 @@
 package org.server.anonymous.controller
 
+import javafx.event.ActionEvent
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
 import javafx.scene.Node
+import javafx.scene.control.ButtonBar
+import javafx.scene.control.ButtonType
+import javafx.scene.control.Dialog
 import javafx.scene.control.ListView
 import javafx.scene.control.TextField
 import javafx.scene.layout.StackPane
@@ -39,7 +43,26 @@ class MainController(
 
     @FXML
     fun onAddContactClicked() {
-        // filled in Task 1.13 (dialog)
+        val viewModel = AddContactViewModel(appGraph.contactService)
+        val dialog = Dialog<Contact>()
+        val loader = FXMLLoader(MainController::class.java.getResource("add-contact-dialog.fxml"))
+        loader.controllerFactory = Callback { AddContactDialogController(viewModel) }
+        dialog.dialogPane = loader.load()
+        dialog.title = "Add contact"
+        val addType = ButtonType("Add", ButtonBar.ButtonData.OK_DONE)
+        dialog.dialogPane.buttonTypes.add(addType)
+        val addButton = dialog.dialogPane.lookupButton(addType)
+        addButton.addEventFilter(ActionEvent.ACTION) { event ->
+            viewModel.add()
+            if (viewModel.addedContact.get() == null) {
+                event.consume()
+            }
+        }
+        dialog.setResultConverter { _ -> viewModel.addedContact.get() }
+        dialog.showAndWait().ifPresent { added ->
+            chatListViewModel.refresh()
+            chatListView.selectionModel.select(added)
+        }
     }
 
     @FXML
