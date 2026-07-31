@@ -23,6 +23,7 @@ class MainController(
 
     private val chatListViewModel = ChatListViewModel(appGraph.contactService)
     private val identityViewModel = IdentityViewModel()
+    private var chatViewModel: ChatViewModel? = null
 
     @Suppress("UnusedPrivateMember") // invoked reflectively by FXML
     @FXML
@@ -30,6 +31,9 @@ class MainController(
         searchField.textProperty().bindBidirectional(chatListViewModel.searchQuery)
         chatListView.items = chatListViewModel.filteredContacts
         chatListView.setCellFactory { ContactCell() }
+        chatListView.selectionModel.selectedItemProperty().addListener { _, _, selected ->
+            if (selected != null) showChat(selected)
+        }
         showIdentity()
     }
 
@@ -50,6 +54,13 @@ class MainController(
 
     private fun showIdentity() {
         val view: Node = load("identity-view.fxml") { IdentityController(identityViewModel) }
+        swapContent(view)
+    }
+
+    private fun showChat(contact: Contact) {
+        val viewModel = ChatViewModel(appGraph.messageService, contact)
+        chatViewModel = viewModel
+        val view: Node = load("chat-view.fxml") { ChatController(viewModel) }
         swapContent(view)
     }
 
