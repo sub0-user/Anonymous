@@ -27,6 +27,7 @@ class MainController(
 
     private val chatListViewModel = ChatListViewModel(appGraph.contactService)
     private val identityViewModel = IdentityViewModel()
+    private val settingsViewModel = SettingsViewModel()
     private var chatViewModel: ChatViewModel? = null
 
     @Suppress("UnusedPrivateMember") // invoked reflectively by FXML
@@ -72,7 +73,12 @@ class MainController(
 
     @FXML
     fun onShowSettingsClicked() {
-        // filled in Task 1.14
+        showSettings()
+    }
+
+    private fun showSettings() {
+        val view: Node = load("settings-view.fxml") { SettingsController(settingsViewModel) }
+        swapContent(view)
     }
 
     private fun showIdentity() {
