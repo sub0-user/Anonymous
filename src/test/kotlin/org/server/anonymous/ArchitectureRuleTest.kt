@@ -13,14 +13,14 @@ import kotlin.io.path.walk
  * - data:       may NOT import org.server.anonymous.controller, org.server.anonymous.business, or javafx.*
  */
 class ArchitectureRuleTest {
-
     private val sourceRoot: Path = Path.of("src/main/kotlin/org/server/anonymous")
 
-    private val rules: Map<String, List<String>> = mapOf(
-        "controller" to listOf("org.server.anonymous.data"),
-        "business" to listOf("org.server.anonymous.controller", "javafx"),
-        "data" to listOf("org.server.anonymous.controller", "org.server.anonymous.business", "javafx"),
-    )
+    private val rules: Map<String, List<String>> =
+        mapOf(
+            "controller" to listOf("org.server.anonymous.data"),
+            "business" to listOf("org.server.anonymous.controller", "javafx"),
+            "data" to listOf("org.server.anonymous.controller", "org.server.anonymous.business", "javafx"),
+        )
 
     @Test
     fun `rule engine detects a violating import`() {
@@ -48,14 +48,19 @@ class ArchitectureRuleTest {
  * Pure string rule engine: given the source lines of a file and its layer,
  * returns every import that violates the layer law.
  */
-class LayerRuleEngine(private val rules: Map<String, List<String>>) {
-
-    fun findViolations(layer: String, lines: List<String>): List<String> {
+class LayerRuleEngine(
+    private val rules: Map<String, List<String>>,
+) {
+    fun findViolations(
+        layer: String,
+        lines: List<String>,
+    ): List<String> {
         val forbiddenPrefixes = rules[layer].orEmpty()
         return lines
             .filter { it.startsWith("import ") }
             .flatMap { importLine ->
-                forbiddenPrefixes.filter { importLine.contains("import $it") }
+                forbiddenPrefixes
+                    .filter { importLine.contains("import $it") }
                     .map { "$importLine  (forbidden in layer '$layer')" }
             }
     }

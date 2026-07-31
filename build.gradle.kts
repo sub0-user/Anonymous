@@ -62,6 +62,24 @@ tasks.withType<Test> {
     useJUnitPlatform()
 }
 
+tasks.register("installGitHooks") {
+    doLast {
+        val hook =
+            layout.projectDirectory
+                .file("hooks/pre-commit")
+                .asFile
+        val target =
+            layout.projectDirectory
+                .dir(".git/hooks")
+                .file("pre-commit")
+                .asFile
+        target.parentFile.mkdirs()
+        hook.copyTo(target, overwrite = true)
+        target.setExecutable(true)
+        println("Installed git pre-commit hook -> $target")
+    }
+}
+
 jlink {
     imageZip.set(layout.buildDirectory.file("/distributions/app-${javafx.platform.classifier}.zip"))
     options.set(listOf("--strip-debug", "--compress", "2", "--no-header-files", "--no-man-pages"))
