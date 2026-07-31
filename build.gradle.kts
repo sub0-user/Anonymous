@@ -24,7 +24,7 @@ tasks.withType<JavaCompile> {
 
 application {
     mainModule.set("org.server.anonymous")
-    mainClass.set("org.server.anonymous.HelloApplication")
+    mainClass.set("org.server.anonymous.Launcher")
 }
 kotlin {
     jvmToolchain(21)

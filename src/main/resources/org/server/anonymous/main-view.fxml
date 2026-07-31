@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="org.server.anonymous.controller.MainController" styleClass="root-panel">
+    <left>
+        <VBox styleClass="sidebar" minWidth="260.0" prefWidth="280.0" maxWidth="320.0">
+            <HBox styleClass="sidebar-header" alignment="CENTER_LEFT" spacing="8.0">
+                <ImageView fitHeight="24.0" preserveRatio="true">
+                    <image><Image url="@logo/logo.png"/></image>
+                </ImageView>
+                <Label text="Anonymous" styleClass="app-title"/>
+            </HBox>
+            <TextField fx:id="searchField" promptText="search…" styleClass="search-field"/>
+            <ListView fx:id="chatListView" styleClass="chat-list" VBox.vgrow="ALWAYS"/>
+            <Button text="＋ Add contact" onAction="#onAddContactClicked"
+                    styleClass="accent-button" maxWidth="Infinity" mnemonicParsing="false"/>
+            <HBox spacing="8.0">
+                <Button text="My number" onAction="#onShowIdentityClicked"
+                        styleClass="ghost-button" HBox.hgrow="ALWAYS" maxWidth="Infinity" mnemonicParsing="false"/>
+                <Button text="Settings" onAction="#onShowSettingsClicked"
+                        styleClass="ghost-button" HBox.hgrow="ALWAYS" maxWidth="Infinity" mnemonicParsing="false"/>
+            </HBox>
+        </VBox>
+    </left>
+    <center>
+        <StackPane fx:id="contentStack" styleClass="content-panel"/>
+    </center>
+</BorderPane>
