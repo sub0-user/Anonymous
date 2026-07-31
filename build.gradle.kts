@@ -26,7 +26,13 @@ application {
     mainClass.set("org.server.anonymous.HelloApplication")
 }
 kotlin {
-    jvmToolchain(11)
+    jvmToolchain(21)
+}
+
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(21))
+    }
 }
 
 javafx {
