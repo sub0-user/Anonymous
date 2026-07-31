@@ -28,8 +28,8 @@ class MainController(
     private lateinit var contentStack: StackPane
 
     private val chatListViewModel = ChatListViewModel(appGraph.contactService)
-    private val identityViewModel = IdentityViewModel()
-    private val settingsViewModel = SettingsViewModel()
+    private val identityViewModel = IdentityViewModel(appGraph.torNodeManager)
+    private val settingsViewModel = SettingsViewModel(appGraph.torNodeManager)
     private var chatViewModel: ChatViewModel? = null
 
     @Suppress("UnusedPrivateMember") // invoked reflectively by FXML

@@ -16,6 +16,7 @@ import org.server.anonymous.controller.AddContactDialogController
 import org.server.anonymous.controller.AddContactViewModel
 import org.server.anonymous.controller.ChatController
 import org.server.anonymous.controller.ChatViewModel
+import org.server.anonymous.controller.FakeNodeStatusSource
 import org.server.anonymous.controller.IdentityController
 import org.server.anonymous.controller.IdentityViewModel
 import org.server.anonymous.controller.MainController
@@ -45,7 +46,7 @@ class FxmlSmokeTest {
     fun `identity view loads`() =
         JavaFxTestSupport.onFxThread {
             val loader = FXMLLoader(MainController::class.java.getResource("identity-view.fxml"), bundle)
-            loader.controllerFactory = Callback { IdentityController(IdentityViewModel()) }
+            loader.controllerFactory = Callback { IdentityController(IdentityViewModel(FakeNodeStatusSource())) }
             assertNotNull(loader.load<Node>())
         }
 
@@ -71,7 +72,7 @@ class FxmlSmokeTest {
     fun `settings view loads`() =
         JavaFxTestSupport.onFxThread {
             val loader = FXMLLoader(MainController::class.java.getResource("settings-view.fxml"), bundle)
-            loader.controllerFactory = Callback { SettingsController(SettingsViewModel()) }
+            loader.controllerFactory = Callback { SettingsController(SettingsViewModel(FakeNodeStatusSource())) }
             assertNotNull(loader.load<Node>())
         }
 }
