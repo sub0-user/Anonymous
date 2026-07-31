@@ -17,16 +17,16 @@
                 <ImageView fitHeight="24.0" preserveRatio="true">
                     <image><Image url="@logo/logo.png"/></image>
                 </ImageView>
-                <Label text="Anonymous" styleClass="app-title"/>
+                <Label text="%app.name" styleClass="app-title"/>
             </HBox>
-            <TextField fx:id="searchField" promptText="search…" styleClass="search-field"/>
+            <TextField fx:id="searchField" promptText="%search.prompt" styleClass="search-field"/>
             <ListView fx:id="chatListView" styleClass="chat-list" VBox.vgrow="ALWAYS"/>
-            <Button text="＋ Add contact" onAction="#onAddContactClicked"
+            <Button text="%add.contact" onAction="#onAddContactClicked"
                     styleClass="accent-button" maxWidth="Infinity" mnemonicParsing="false"/>
             <HBox spacing="8.0">
-                <Button text="My number" onAction="#onShowIdentityClicked"
+                <Button text="%nav.my_number" onAction="#onShowIdentityClicked"
                         styleClass="ghost-button" HBox.hgrow="ALWAYS" maxWidth="Infinity" mnemonicParsing="false"/>
-                <Button text="Settings" onAction="#onShowSettingsClicked"
+                <Button text="%nav.settings" onAction="#onShowSettingsClicked"
                         styleClass="ghost-button" HBox.hgrow="ALWAYS" maxWidth="Infinity" mnemonicParsing="false"/>
             </HBox>
         </VBox>

@@ -5,16 +5,16 @@
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.VBox?>
 <DialogPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="org.server.anonymous.controller.AddContactDialogController" prefWidth="420.0">
+            fx:controller="org.server.anonymous.controller.AddContactDialogController" prefWidth="420.0" styleClass="dialog-pane">
     <content>
         <VBox spacing="10.0">
             <VBox spacing="4.0">
-                <Label text="Alias" styleClass="label-caption"/>
-                <TextField fx:id="aliasField" promptText="raven" styleClass="search-field"/>
+                <Label text="%dialog.alias" styleClass="label-caption"/>
+                <TextField fx:id="aliasField" promptText="%dialog.alias.prompt" styleClass="search-field"/>
             </VBox>
             <VBox spacing="4.0">
-                <Label text="Onion address (their number)" styleClass="label-caption"/>
-                <TextField fx:id="addressField" promptText="56chars.onion" styleClass="mono search-field"/>
+                <Label text="%dialog.address" styleClass="label-caption"/>
+                <TextField fx:id="addressField" promptText="%dialog.address.prompt" styleClass="mono search-field"/>
             </VBox>
             <Label fx:id="feedbackLabel" styleClass="error-text" wrapText="true"/>
         </VBox>
