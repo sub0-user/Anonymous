@@ -10,10 +10,6 @@ import javafx.scene.input.ClipboardContent
 class IdentityController(
     private val viewModel: IdentityViewModel,
 ) {
-    @FXML private lateinit var appNameLabel: Label
-
-    @FXML private lateinit var taglineLabel: Label
-
     @FXML private lateinit var addressLabel: Label
 
     @FXML private lateinit var nodeStatusLabel: Label
@@ -27,8 +23,6 @@ class IdentityController(
     @Suppress("UnusedPrivateMember") // invoked reflectively by FXML
     @FXML
     private fun initialize() {
-        appNameLabel.textProperty().bind(viewModel.appName)
-        taglineLabel.textProperty().bind(viewModel.tagline)
         addressLabel.textProperty().bind(viewModel.onionAddress)
         nodeStatusLabel.textProperty().bind(viewModel.nodeStatus)
         dataDirectoryLabel.textProperty().bind(viewModel.dataDirectory)

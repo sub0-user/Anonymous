@@ -21,13 +21,16 @@ import org.server.anonymous.controller.IdentityViewModel
 import org.server.anonymous.controller.MainController
 import org.server.anonymous.controller.SettingsController
 import org.server.anonymous.controller.SettingsViewModel
+import java.util.ResourceBundle
 
 class FxmlSmokeTest {
+    private val bundle = ResourceBundle.getBundle("org.server.anonymous.messages")
+
     @Test
     fun `main view loads with full wiring`() =
         JavaFxTestSupport.onFxThread {
             val appGraph = AppGraph()
-            val loader = FXMLLoader(AnonymousApplication::class.java.getResource("main-view.fxml"))
+            val loader = FXMLLoader(AnonymousApplication::class.java.getResource("main-view.fxml"), bundle)
             loader.controllerFactory =
                 Callback { type ->
                     when (type) {
@@ -41,7 +44,7 @@ class FxmlSmokeTest {
     @Test
     fun `identity view loads`() =
         JavaFxTestSupport.onFxThread {
-            val loader = FXMLLoader(MainController::class.java.getResource("identity-view.fxml"))
+            val loader = FXMLLoader(MainController::class.java.getResource("identity-view.fxml"), bundle)
             loader.controllerFactory = Callback { IdentityController(IdentityViewModel()) }
             assertNotNull(loader.load<Node>())
         }
@@ -50,7 +53,7 @@ class FxmlSmokeTest {
     fun `chat view loads`() =
         JavaFxTestSupport.onFxThread {
             val contact = Contact(1, "raven", OnionAddress("z".repeat(56) + ".onion"), "2m ago")
-            val loader = FXMLLoader(MainController::class.java.getResource("chat-view.fxml"))
+            val loader = FXMLLoader(MainController::class.java.getResource("chat-view.fxml"), bundle)
             loader.controllerFactory = Callback { ChatController(ChatViewModel(InMemoryMessageService(), contact)) }
             assertNotNull(loader.load<Node>())
         }
@@ -58,7 +61,7 @@ class FxmlSmokeTest {
     @Test
     fun `add contact dialog loads`() =
         JavaFxTestSupport.onFxThread {
-            val loader = FXMLLoader(MainController::class.java.getResource("add-contact-dialog.fxml"))
+            val loader = FXMLLoader(MainController::class.java.getResource("add-contact-dialog.fxml"), bundle)
             loader.controllerFactory =
                 Callback { AddContactDialogController(AddContactViewModel(InMemoryContactService())) }
             assertNotNull(loader.load<DialogPane>())
@@ -67,7 +70,7 @@ class FxmlSmokeTest {
     @Test
     fun `settings view loads`() =
         JavaFxTestSupport.onFxThread {
-            val loader = FXMLLoader(MainController::class.java.getResource("settings-view.fxml"))
+            val loader = FXMLLoader(MainController::class.java.getResource("settings-view.fxml"), bundle)
             loader.controllerFactory = Callback { SettingsController(SettingsViewModel()) }
             assertNotNull(loader.load<Node>())
         }

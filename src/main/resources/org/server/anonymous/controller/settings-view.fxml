@@ -4,17 +4,17 @@
 <VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="org.server.anonymous.controller.SettingsController"
       styleClass="identity-view" alignment="TOP_LEFT" spacing="12.0" maxWidth="560.0">
-    <Label text="SETTINGS" styleClass="identity-title"/>
+    <Label text="%settings.title" styleClass="identity-title"/>
     <VBox spacing="4.0">
-        <Label text="Node status" styleClass="label-caption"/>
+        <Label text="%settings.node_status" styleClass="label-caption"/>
         <Label fx:id="nodeStatusLabel"/>
     </VBox>
     <VBox spacing="4.0">
-        <Label text="Data directory" styleClass="label-caption"/>
+        <Label text="%settings.data_directory" styleClass="label-caption"/>
         <Label fx:id="dataDirectoryLabel" styleClass="mono"/>
     </VBox>
     <VBox spacing="4.0">
-        <Label text="Version" styleClass="label-caption"/>
+        <Label text="%settings.version" styleClass="label-caption"/>
         <Label fx:id="versionLabel" styleClass="muted-text"/>
     </VBox>
 </VBox>

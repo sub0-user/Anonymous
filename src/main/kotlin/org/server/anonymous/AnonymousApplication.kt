@@ -8,12 +8,18 @@ import javafx.stage.Stage
 import javafx.util.Callback
 import org.server.anonymous.business.AppGraph
 import org.server.anonymous.controller.MainController
+import java.util.ResourceBundle
 
 class AnonymousApplication : Application() {
     private val appGraph = AppGraph()
 
     override fun start(stage: Stage) {
-        val loader = FXMLLoader(AnonymousApplication::class.java.getResource("main-view.fxml"))
+        val bundle = ResourceBundle.getBundle("org.server.anonymous.messages")
+        val loader =
+            FXMLLoader(
+                AnonymousApplication::class.java.getResource("main-view.fxml"),
+                bundle,
+            )
         loader.controllerFactory =
             Callback { type ->
                 when (type) {
@@ -22,10 +28,16 @@ class AnonymousApplication : Application() {
                 }
             }
         val root = loader.load<Parent>()
-        stage.title = "Anonymous"
+        val scene = Scene(root)
+        scene.stylesheets.add(stylesheet())
+        stage.title = bundle.getString("app.name")
         stage.minWidth = 900.0
         stage.minHeight = 600.0
-        stage.scene = Scene(root)
+        stage.scene = scene
         stage.show()
+    }
+
+    companion object {
+        fun stylesheet(): String = AnonymousApplication::class.java.getResource("css/onion-dark.css").toExternalForm()
     }
 }

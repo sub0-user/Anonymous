@@ -11,8 +11,10 @@ import javafx.scene.control.ListView
 import javafx.scene.control.TextField
 import javafx.scene.layout.StackPane
 import javafx.util.Callback
+import org.server.anonymous.AnonymousApplication
 import org.server.anonymous.business.AppGraph
 import org.server.anonymous.business.model.Contact
+import java.util.ResourceBundle
 
 class MainController(
     private val appGraph: AppGraph,
@@ -44,13 +46,15 @@ class MainController(
 
     @FXML
     fun onAddContactClicked() {
+        val bundle = ResourceBundle.getBundle("org.server.anonymous.messages")
         val viewModel = AddContactViewModel(appGraph.contactService)
         val dialog = Dialog<Contact>()
-        val loader = FXMLLoader(MainController::class.java.getResource("add-contact-dialog.fxml"))
+        val loader = FXMLLoader(MainController::class.java.getResource("add-contact-dialog.fxml"), bundle)
         loader.controllerFactory = Callback { AddContactDialogController(viewModel) }
         dialog.dialogPane = loader.load()
-        dialog.title = "Add contact"
-        val addType = ButtonType("Add", ButtonBar.ButtonData.OK_DONE)
+        dialog.dialogPane.stylesheets.add(AnonymousApplication.stylesheet())
+        dialog.title = bundle.getString("dialog.add_contact")
+        val addType = ButtonType(bundle.getString("dialog.add"), ButtonBar.ButtonData.OK_DONE)
         dialog.dialogPane.buttonTypes.add(addType)
         val addButton = dialog.dialogPane.lookupButton(addType)
         addButton.addEventFilter(ActionEvent.ACTION) { event ->
@@ -101,7 +105,8 @@ class MainController(
         fxml: String,
         factory: (Class<*>) -> Any,
     ): T {
-        val loader = FXMLLoader(MainController::class.java.getResource(fxml))
+        val bundle = ResourceBundle.getBundle("org.server.anonymous.messages")
+        val loader = FXMLLoader(MainController::class.java.getResource(fxml), bundle)
         loader.controllerFactory = Callback { factory(it) }
         return loader.load()
     }
