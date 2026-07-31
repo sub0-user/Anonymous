@@ -14,4 +14,3 @@ class HelloApplication : Application() {
         stage.show()
     }
 }
-  

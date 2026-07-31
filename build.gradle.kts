@@ -5,6 +5,8 @@ plugins {
     id("org.javamodularity.moduleplugin") version "1.8.15"
     id("org.openjfx.javafxplugin") version "0.0.13"
     id("org.beryx.jlink") version "2.25.0"
+    id("org.jlleitschuh.gradle.ktlint") version "14.2.0"
+    id("io.gitlab.arturbosch.detekt") version "1.23.8"
 }
 
 group = "org.server"
@@ -15,7 +17,6 @@ repositories {
 }
 
 val junitVersion = "5.12.1"
-
 
 tasks.withType<JavaCompile> {
     options.encoding = "UTF-8"
@@ -40,9 +41,19 @@ javafx {
     modules = listOf("javafx.controls", "javafx.fxml")
 }
 
+detekt {
+    buildUponDefaultConfig = true
+    config.setFrom("config/detekt/detekt.yml")
+}
+
+tasks.check {
+    dependsOn("ktlintCheck")
+    dependsOn("detekt")
+}
+
 dependencies {
-    testImplementation("org.junit.jupiter:junit-jupiter-api:${junitVersion}")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:${junitVersion}")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:$junitVersion")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
 }
 
 tasks.withType<Test> {

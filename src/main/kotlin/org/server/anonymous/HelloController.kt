@@ -8,6 +8,7 @@ class HelloController {
     private lateinit var welcomeText: Label
 
     @FXML
+    @Suppress("UnusedPrivateMember") // invoked reflectively from hello-view.fxml
     private fun onHelloButtonClick() {
         welcomeText.text = "Welcome to JavaFX Application!"
     }
