@@ -38,7 +38,7 @@ class TorNodeManager(
                 setStatus(NodeStatus.Bootstrapping(0))
                 val c = controlFactory()
                 control = c
-                c.connect("127.0.0.1", ports.controlPort)
+                connectWithRetry(c, ports.controlPort)
                 val cookie = Files.readAllBytes(torProcess.cookieFile())
                 c.authenticate(cookie)
                 waitForBootstrap(c)
@@ -47,6 +47,7 @@ class TorNodeManager(
                 val address = c.addOnionService(identity.seed, virtualPort = 80, "127.0.0.1", inboundSocket.localPort)
                 setStatus(NodeStatus.Online(address))
             } catch (t: Throwable) {
+                System.err.println("[tor-node] start failed: ${t.message}")
                 setStatus(NodeStatus.Offline(t.message ?: t::class.simpleName ?: "error"))
                 runCatching { cleanup() } // keep the error reason, just tear down the process
             }
@@ -66,6 +67,26 @@ class TorNodeManager(
         torProcess.stop()
         control = null
         inbound = null
+    }
+
+    /** Tor's control listener opens shortly after spawn — retry refused/reset connects. */
+    @Suppress("TooGenericExceptionCaught") // transient connect failures are retried
+    private fun connectWithRetry(
+        c: TorControl,
+        controlPort: Int,
+    ) {
+        var lastError: Throwable? = null
+        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(60)
+        while (System.nanoTime() < deadline) {
+            try {
+                c.connect("127.0.0.1", controlPort)
+                return
+            } catch (t: Throwable) {
+                lastError = t
+                Thread.sleep(1000)
+            }
+        }
+        error("could not connect to tor control port: $lastError")
     }
 
     private fun waitForBootstrap(c: TorControl) {

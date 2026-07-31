@@ -75,6 +75,9 @@ rm -rf "$PREFIX"/*
 cp -r "$INNER"/. "$PREFIX"/
 
 chmod +x "$PREFIX/bin/anonymous" 2>/dev/null || true
+# The zip may not preserve exec bits for the runtime's spawn helper — without it,
+# ProcessBuilder fails with "posix_spawn ... Permission denied".
+chmod +x "$PREFIX/bin/java" "$PREFIX/lib/jspawnhelper" 2>/dev/null || true
 # Wrapper script, NOT a symlink: jlink launchers resolve their own path, so a symlink
 # would look for java next to the symlink instead of inside the installed app image.
 rm -f "$BIN_DIR/anonymous"
