@@ -2,7 +2,6 @@ package org.server.anonymous.business
 
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.attribute.PosixFilePermission
 import java.security.KeyPair
 import java.security.KeyPairGenerator
 import java.security.interfaces.EdECPrivateKey
@@ -58,37 +57,13 @@ class IdentityService(
 
     private fun persist(identity: Identity) {
         Files.createDirectories(identityDir)
-        setPrivatePermissions(identityDir, directory = true)
+        PrivateFileOps.setPrivateDir(identityDir)
         val props =
             Properties().apply {
                 setProperty("ed25519_seed", Base64.getEncoder().encodeToString(identity.seed))
                 setProperty("created_at", identity.createdAt.toString())
             }
         Files.newOutputStream(propertiesFile).use { props.store(it, "Anonymous identity — do not share") }
-        setPrivatePermissions(propertiesFile, directory = false)
-    }
-
-    @Suppress("SwallowedException") // best-effort: non-POSIX filesystems simply skip chmod
-    private fun setPrivatePermissions(
-        path: Path,
-        directory: Boolean,
-    ) {
-        if (System.getProperty("os.name").lowercase().contains("win")) return
-        try {
-            Files.setPosixFilePermissions(
-                path,
-                if (directory) {
-                    setOf(
-                        PosixFilePermission.OWNER_READ,
-                        PosixFilePermission.OWNER_WRITE,
-                        PosixFilePermission.OWNER_EXECUTE,
-                    )
-                } else {
-                    setOf(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE)
-                },
-            )
-        } catch (e: UnsupportedOperationException) {
-            // Non-POSIX filesystem — best effort.
-        }
+        PrivateFileOps.setPrivateFile(propertiesFile)
     }
 }
