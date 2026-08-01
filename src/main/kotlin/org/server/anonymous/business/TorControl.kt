@@ -34,5 +34,8 @@ interface TorControl {
 
     fun deleteOnionService(address: String)
 
+    /** Reloads Tor's configuration (e.g. after writing a client-auth file). */
+    fun signalHup()
+
     fun close()
 }

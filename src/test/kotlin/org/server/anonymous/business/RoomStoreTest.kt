@@ -41,6 +41,7 @@ class RoomStoreTest {
             type = type,
             isFounder = true,
             founderAddress = null,
+            founderPublicKey = null,
             serviceSeed = seed(1),
             serviceAddress = "a".repeat(56) + ".onion",
             roomKey = seed(5),
@@ -127,6 +128,11 @@ class RoomStoreTest {
         assertEquals(expected.type, actual.type)
         assertEquals(expected.isFounder, actual.isFounder)
         assertEquals(expected.founderAddress, actual.founderAddress)
+        if (expected.founderPublicKey == null) {
+            assertEquals(null, actual.founderPublicKey)
+        } else {
+            assertArrayEquals(expected.founderPublicKey, actual.founderPublicKey)
+        }
         assertArrayEquals(expected.serviceSeed, actual.serviceSeed)
         assertEquals(expected.serviceAddress, actual.serviceAddress)
         assertArrayEquals(expected.roomKey, actual.roomKey)

@@ -16,6 +16,9 @@ sealed interface RoomInvite {
 
     /** The founder's identity address (used to reach them for re-sync). */
     val founderAddress: String
+
+    /** The founder's static X25519 key — needed to unwrap room keys. */
+    val founderPublicKey: ByteArray
 }
 
 data class PrivateRoomInvite(
@@ -24,6 +27,7 @@ data class PrivateRoomInvite(
     override val founderAddress: String,
     val clientAuthPrivate: ByteArray,
     val wrappedRoomKey: ByteArray,
+    override val founderPublicKey: ByteArray,
     val expiryEpochSeconds: Long? = null,
 ) : RoomInvite
 
@@ -32,6 +36,7 @@ data class PublicRoomInvite(
     override val serviceAddress: String,
     override val founderAddress: String,
     val entryKey: String,
+    override val founderPublicKey: ByteArray,
 ) : RoomInvite
 
 /**
@@ -59,15 +64,16 @@ object InviteCodec {
     fun decode(text: String): RoomInvite {
         val parts = text.trim().split(":")
         return when {
-            parts.size == 7 && parts[0] == PRIVATE_PREFIX && parts[1] == VERSION -> decodePrivate(parts)
             parts.size == 8 && parts[0] == PRIVATE_PREFIX && parts[1] == VERSION -> decodePrivate(parts)
-            parts.size == 6 && parts[0] == PUBLIC_PREFIX && parts[1] == VERSION -> decodePublic(parts)
+            parts.size == 9 && parts[0] == PRIVATE_PREFIX && parts[1] == VERSION -> decodePrivate(parts)
+            parts.size == 7 && parts[0] == PUBLIC_PREFIX && parts[1] == VERSION -> decodePublic(parts)
             else -> invalid()
         }
     }
 
     private fun validate(invite: RoomInvite) {
         checkValidAddresses(invite.serviceAddress, invite.founderAddress)
+        check(invite.founderPublicKey.size == 32) { "invalid founder key" }
         when (invite) {
             is PrivateRoomInvite -> {
                 check(invite.clientAuthPrivate.size == 32) { "invalid client-auth key length" }
@@ -87,6 +93,7 @@ object InviteCodec {
                 urlEncoder.encodeToString(invite.wrappedRoomKey),
                 roomIdHex(invite.roomId),
                 invite.founderAddress,
+                urlEncoder.encodeToString(invite.founderPublicKey),
             )
         return (if (invite.expiryEpochSeconds != null) base + invite.expiryEpochSeconds.toString() else base)
             .joinToString(":")
@@ -100,6 +107,7 @@ object InviteCodec {
             roomIdHex(invite.roomId),
             invite.entryKey,
             invite.founderAddress,
+            urlEncoder.encodeToString(invite.founderPublicKey),
         ).joinToString(":")
 
     private fun decodePrivate(parts: List<String>): PrivateRoomInvite {
@@ -108,11 +116,13 @@ object InviteCodec {
         val wrapped = decodeUrl(parts[4])
         val roomId = parseRoomId(parts[5])
         val founderAddress = parts[6]
-        val expiry = parts.getOrNull(7)?.toLongOrNull() ?: if (parts.size == 8) invalid() else null
+        val founderPublicKey = decodeUrl(parts[7])
+        val expiry = parts.getOrNull(8)?.toLongOrNull() ?: if (parts.size == 9) invalid() else null
         check(authPrivate.size == 32) { "invalid client-auth key length" }
         check(wrapped.size > RoomKeyWrap.NONCE_LENGTH) { "invalid wrapped room key" }
+        check(founderPublicKey.size == 32) { "invalid founder key" }
         checkValidAddresses(serviceAddress, founderAddress)
-        return PrivateRoomInvite(roomId, serviceAddress, founderAddress, authPrivate, wrapped, expiry)
+        return PrivateRoomInvite(roomId, serviceAddress, founderAddress, authPrivate, wrapped, founderPublicKey, expiry)
     }
 
     private fun decodePublic(parts: List<String>): PublicRoomInvite {
@@ -120,9 +130,11 @@ object InviteCodec {
         val roomId = parseRoomId(parts[3])
         val entryKey = parts[4]
         val founderAddress = parts[5]
+        val founderPublicKey = decodeUrl(parts[6])
         check(EntryKey.isValid(entryKey)) { "invalid entry key" }
+        check(founderPublicKey.size == 32) { "invalid founder key" }
         checkValidAddresses(serviceAddress, founderAddress)
-        return PublicRoomInvite(roomId, serviceAddress, founderAddress, entryKey)
+        return PublicRoomInvite(roomId, serviceAddress, founderAddress, entryKey, founderPublicKey)
     }
 
     private fun decodeUrl(text: String): ByteArray {

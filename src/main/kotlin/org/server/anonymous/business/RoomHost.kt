@@ -74,6 +74,7 @@ class RoomHost(
                 type = type,
                 isFounder = true,
                 founderAddress = null,
+                founderPublicKey = null,
                 serviceSeed = SessionCrypto.randomBytes(32),
                 serviceAddress = "",
                 roomKey = RoomKeyWrap.newRoomKey(),
@@ -118,6 +119,7 @@ class RoomHost(
                         serviceAddress = record.serviceAddress,
                         founderAddress = founderAddress(),
                         entryKey = record.entryKey ?: return OpResult.Failure("Room has no entry key"),
+                        founderPublicKey = staticKeys.publicKey,
                     )
                 OpResult.Success(InviteCodec.encode(invite))
             }
@@ -260,6 +262,7 @@ class RoomHost(
                 founderAddress = founderAddress(),
                 clientAuthPrivate = pair.privateScalar,
                 wrappedRoomKey = wrapped,
+                founderPublicKey = staticKeys.publicKey,
                 expiryEpochSeconds = expiryEpochSeconds,
             )
         return OpResult.Success(InviteCodec.encode(invite))
@@ -389,8 +392,8 @@ class RoomHost(
         val entries =
             record.members
                 .filter { it.status != MemberStatus.KICKED }
-                .map { RoomControls.MemberEntry(it.publicKey, it.name) }
-        broadcastControl(record, RoomControls.OP_MEMBER_LIST, RoomControls.encodeMemberList(entries))
+                .map { RoomControls.MemberEntry(it.publicKey, it.name, it.address) }
+        broadcastControl(record, RoomControls.OP_MEMBER_LIST, RoomControls.encodeMemberList(record.name, entries))
     }
 
     private fun broadcastControl(

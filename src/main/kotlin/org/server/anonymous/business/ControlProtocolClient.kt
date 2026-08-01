@@ -100,6 +100,10 @@ class ControlProtocolClient : TorControl {
         sendCommand("DEL_ONION ${address.removeSuffix(".onion")}")
     }
 
+    override fun signalHup() {
+        sendCommand("SIGNAL HUP")
+    }
+
     override fun close() {
         runCatching {
             writer?.write("QUIT\n")

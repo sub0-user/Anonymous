@@ -10,7 +10,11 @@ import java.util.concurrent.TimeUnit
  * Facade: identity → process → cookie auth → bootstrap → ADD_ONION → status source.
  * All node work happens off the caller thread; status listeners are notified from
  * this manager's single executor (ViewModels hop to the FX thread themselves).
+ *
+ * @Suppress TooManyFunctions: one cohesive node lifecycle; splitting it would scatter the
+ * startup pipeline.
  */
+@Suppress("TooManyFunctions")
 class TorNodeManager(
     private val identityService: IdentityService,
     private val torProcess: TorProcess,
@@ -77,6 +81,13 @@ class TorNodeManager(
     /** The socket Tor routes inbound onion connections to; null while offline. */
     val inboundSocket: ServerSocket?
         get() = inbound
+
+    /** The connected+authenticated control client (used for room services); null while offline. */
+    val controlClient: TorControl?
+        get() = control
+
+    /** Tor's ClientOnionAuthDir — joined room services' `.auth_private` files live here. */
+    fun clientAuthDir(): java.nio.file.Path = torProcess.clientAuthDir()
 
     fun stop() {
         executor.execute {

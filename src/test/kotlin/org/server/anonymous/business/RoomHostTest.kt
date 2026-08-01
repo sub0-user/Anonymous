@@ -57,6 +57,8 @@ class RoomHostTest {
             deletedCount++
         }
 
+        override fun signalHup() = Unit
+
         override fun close() = Unit
     }
 

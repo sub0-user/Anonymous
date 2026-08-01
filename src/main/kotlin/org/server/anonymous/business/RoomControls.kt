@@ -26,6 +26,12 @@ object RoomControls {
     data class MemberEntry(
         val publicKey: ByteArray,
         val name: String,
+        val address: String? = null,
+    )
+
+    data class MemberList(
+        val roomName: String,
+        val members: List<MemberEntry>,
     )
 
     fun encode(
@@ -80,27 +86,42 @@ object RoomControls {
         return JoinRequest(name, entryKey)
     }
 
-    // MEMBER_LIST — the authoritative name map: [count:1] then [pub:32][nameLen:1][name].
+    // MEMBER_LIST — the authoritative name/address map:
+    // [roomNameLen:1][roomName][count:1] then [pub:32][nameLen:1][name][addrLen:1][addr].
 
-    fun encodeMemberList(members: List<MemberEntry>): ByteArray {
+    fun encodeMemberList(
+        roomName: String,
+        members: List<MemberEntry>,
+    ): ByteArray {
         check(members.size <= 255) { "too many members" }
+        val nameBytes = roomName.toByteArray(Charsets.UTF_8)
+        check(nameBytes.size <= 255) { "room name too long" }
         val body = java.io.ByteArrayOutputStream()
+        body.write(nameBytes.size)
+        body.write(nameBytes)
         body.write(members.size)
         for (member in members) {
             check(member.publicKey.size == 32) { "member key must be 32 bytes" }
             val name = member.name.toByteArray(Charsets.UTF_8)
             check(name.size in 1..255) { "member name length out of range" }
+            val address = member.address?.toByteArray(Charsets.UTF_8)
+            if (address != null) check(address.size <= 255) { "member address too long" }
             body.write(member.publicKey)
             body.write(name.size)
             body.write(name)
+            body.write(address?.size ?: 0)
+            if (address != null) body.write(address)
         }
         return body.toByteArray()
     }
 
-    fun decodeMemberList(payload: ByteArray): List<MemberEntry> {
-        check(payload.isNotEmpty()) { "member list too short" }
-        val count = payload[0].toInt() and 0xFF
-        var offset = 1
+    fun decodeMemberList(payload: ByteArray): MemberList {
+        check(payload.size >= 2) { "member list too short" }
+        val roomNameLen = payload[0].toInt() and 0xFF
+        check(1 + roomNameLen + 1 <= payload.size) { "malformed member list" }
+        val roomName = payload.copyOfRange(1, 1 + roomNameLen).toString(Charsets.UTF_8)
+        val count = payload[1 + roomNameLen].toInt() and 0xFF
+        var offset = 2 + roomNameLen
         val members = mutableListOf<MemberEntry>()
         repeat(count) {
             check(offset + 32 + 1 <= payload.size) { "malformed member list" }
@@ -108,12 +129,23 @@ object RoomControls {
             offset += 32
             val nameLen = payload[offset].toInt() and 0xFF
             offset += 1
-            check(nameLen in 1..255 && offset + nameLen <= payload.size) { "malformed member name" }
-            members += MemberEntry(key, payload.copyOfRange(offset, offset + nameLen).toString(Charsets.UTF_8))
+            check(nameLen in 1..255 && offset + nameLen + 1 <= payload.size) { "malformed member name" }
+            val name = payload.copyOfRange(offset, offset + nameLen).toString(Charsets.UTF_8)
             offset += nameLen
+            val addrLen = payload[offset].toInt() and 0xFF
+            offset += 1
+            check(offset + addrLen <= payload.size) { "malformed member address" }
+            val address =
+                if (addrLen == 0) {
+                    null
+                } else {
+                    payload.copyOfRange(offset, offset + addrLen).toString(Charsets.UTF_8)
+                }
+            offset += addrLen
+            members += MemberEntry(key, name, address)
         }
         check(offset == payload.size) { "trailing bytes in member list" }
-        return members
+        return MemberList(roomName, members)
     }
 
     // KEY_UPDATE — [version:1][wrappedLen:2][wrapped room key for this member].

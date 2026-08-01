@@ -39,6 +39,7 @@ class RoomStore(
                 setProperty("type", record.type.name)
                 setProperty("isFounder", record.isFounder.toString())
                 record.founderAddress?.let { setProperty("founderAddress", it) }
+                record.founderPublicKey?.let { setProperty("founderPublicKey", b64(it)) }
                 setProperty("serviceSeed", b64(record.serviceSeed))
                 setProperty("serviceAddress", record.serviceAddress)
                 setProperty("roomKey", b64(record.roomKey))
@@ -93,6 +94,7 @@ class RoomStore(
             type = RoomType.valueOf(props.required("type")),
             isFounder = props.required("isFounder").toBooleanStrict(),
             founderAddress = props.getProperty("founderAddress"),
+            founderPublicKey = props.getProperty("founderPublicKey")?.let(::decode),
             serviceSeed = decode(props.required("serviceSeed")),
             serviceAddress = props.required("serviceAddress"),
             roomKey = decode(props.required("roomKey")),

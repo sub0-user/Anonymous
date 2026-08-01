@@ -16,6 +16,7 @@ class RoomNamesTest {
             type = RoomType.PRIVATE,
             isFounder = true,
             founderAddress = null,
+            founderPublicKey = null,
             serviceSeed = ByteArray(32),
             serviceAddress = "a".repeat(56) + ".onion",
             roomKey = ByteArray(32),

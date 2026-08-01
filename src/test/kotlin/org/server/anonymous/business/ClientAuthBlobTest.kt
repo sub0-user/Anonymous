@@ -27,7 +27,7 @@ class ClientAuthBlobTest {
     @Test
     fun `auth private file roundtrips through parse`() {
         val pair = ClientAuthBlob.createKeyPair()
-        val content = ClientAuthBlob.authPrivateFileContent(pair)
+        val content = ClientAuthBlob.authPrivateFileContent(pair.privateScalar)
         assertArrayEquals(pair.privateScalar, ClientAuthBlob.parseAuthPrivateFile(content))
     }
 

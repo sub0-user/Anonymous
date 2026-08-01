@@ -17,10 +17,10 @@ import java.util.concurrent.Executors
  * contacts, requests, blocks and peer-key binding come from [ContactService]. Persistence
  * is Phase 4.
  *
- * @Suppress TooManyFunctions: a transport service is naturally many small cohesive steps;
- * splitting them across classes would hide the flow.
+ * @Suppress TooManyFunctions, LongParameterList: a transport service is naturally many small
+ * cohesive steps and takes its collaborators directly; splitting them would hide the flow.
  */
-@Suppress("TooManyFunctions")
+@Suppress("TooManyFunctions", "LongParameterList")
 class P2pMessageService(
     private val contactService: ContactService,
     private val nodeStatus: () -> NodeStatus,
@@ -28,6 +28,7 @@ class P2pMessageService(
     private val identity: () -> Identity,
     private val socketFactory: (Int, String, Int) -> Socket = defaultSocksSocket,
     private val rateLimitPerMinute: Int = 30,
+    private val roomInbound: (ByteArray, String, Byte, ByteArray) -> Unit = { _, _, _, _ -> },
 ) : MessageService {
     private val store = mutableMapOf<Long, MutableList<MessageItem>>()
     private val listeners = CopyOnWriteArrayList<(MessageItem) -> Unit>()
@@ -200,10 +201,21 @@ class P2pMessageService(
 
     private fun receiveAndStore(session: MessageSession) {
         val received = session.receiveMessage()
+        when (received.contentType.toInt()) {
+            WireProtocol.CONTENT_TEXT -> handleTextInbound(session, received)
+            WireProtocol.CONTENT_ROOM_MSG, WireProtocol.CONTENT_ROOM_CONTROL ->
+                roomInbound(session.peerPublicKey, session.peerAddress, received.contentType, received.body)
+            else -> Unit
+        }
+    }
+
+    private fun handleTextInbound(
+        session: MessageSession,
+        received: ReceivedMessage,
+    ) {
         val text = received.body.toString(Charsets.UTF_8)
         val contact = contactService.findByAddress(session.peerAddress)
         when {
-            received.contentType.toInt() != WireProtocol.CONTENT_TEXT -> return
             contact == null -> contactService.addRequest(session.peerAddress, text.take(64))
             keyBindingOk(contact, session.peerPublicKey) -> storeInbound(contact, text)
             else -> Unit

@@ -67,17 +67,20 @@ class RoomEnvelopeTest {
     }
 
     @Test
-    fun `member list roundtrip`() {
+    fun `member list roundtrip with room name and addresses`() {
         val members =
             listOf(
-                RoomControls.MemberEntry(ByteArray(32) { 1 }, "alice"),
+                RoomControls.MemberEntry(ByteArray(32) { 1 }, "alice", "a".repeat(56) + ".onion"),
                 RoomControls.MemberEntry(ByteArray(32) { 2 }, "raven"),
             )
-        val decoded = RoomControls.decodeMemberList(RoomControls.encodeMemberList(members))
-        assertEquals(2, decoded.size)
-        assertArrayEquals(ByteArray(32) { 1 }, decoded[0].publicKey)
-        assertEquals("alice", decoded[0].name)
-        assertEquals("raven", decoded[1].name)
+        val decoded = RoomControls.decodeMemberList(RoomControls.encodeMemberList("dev den", members))
+        assertEquals("dev den", decoded.roomName)
+        assertEquals(2, decoded.members.size)
+        assertArrayEquals(ByteArray(32) { 1 }, decoded.members[0].publicKey)
+        assertEquals("alice", decoded.members[0].name)
+        assertEquals("a".repeat(56) + ".onion", decoded.members[0].address)
+        assertEquals("raven", decoded.members[1].name)
+        assertEquals(null, decoded.members[1].address)
     }
 
     @Test

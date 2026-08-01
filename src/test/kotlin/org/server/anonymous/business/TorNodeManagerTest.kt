@@ -17,6 +17,8 @@ class TorNodeManagerTest {
 
         override fun cookieFile(): Path = cookie
 
+        override fun clientAuthDir(): Path = cookie.parent.resolve("client-auth")
+
         override fun isRunning(): Boolean = true
 
         override fun stop() = Unit
@@ -61,6 +63,8 @@ class TorNodeManagerTest {
         override fun deleteOnionService(address: String) {
             deleted = true
         }
+
+        override fun signalHup() = Unit
 
         override fun close() = Unit
     }
@@ -107,6 +111,8 @@ class TorNodeManagerTest {
 
                     override fun cookieFile(): Path = dir.resolve("cookie")
 
+                    override fun clientAuthDir(): Path = dir.resolve("client-auth")
+
                     override fun isRunning(): Boolean = true
 
                     override fun stop() = Unit
@@ -140,6 +146,8 @@ class TorNodeManagerTest {
                 }
 
                 override fun cookieFile(): Path = cookie
+
+                override fun clientAuthDir(): Path = cookie.parent.resolve("client-auth")
 
                 override fun isRunning(): Boolean = spawnCount.get() >= 2
 

@@ -13,6 +13,8 @@ data class RoomRecord(
     val isFounder: Boolean,
     /** The founder's identity address; null when we are the founder. */
     val founderAddress: String?,
+    /** The founder's static X25519 key — needed to unwrap room keys; null when we are the founder. */
+    val founderPublicKey: ByteArray?,
     /** Ed25519 seed for the room's onion service (persisted so the room URL is stable). */
     val serviceSeed: ByteArray,
     val serviceAddress: String,

@@ -25,7 +25,7 @@ object ClientAuthBlob {
     fun torAddOnionBlob(pair: ClientAuthKeyPair): String = b64(pair.publicU + pair.privateScalar)
 
     /** The contents of the invitee's `<serviceid>.auth_private` file under ClientOnionAuthDir. */
-    fun authPrivateFileContent(pair: ClientAuthKeyPair): String = "x25519:" + b64(pair.privateScalar)
+    fun authPrivateFileContent(privateScalar: ByteArray): String = "x25519:" + b64(privateScalar)
 
     fun parseAuthPrivateFile(content: String): ByteArray {
         val decoded = Base64.getDecoder().decode(content.trim().removePrefix("x25519:"))
