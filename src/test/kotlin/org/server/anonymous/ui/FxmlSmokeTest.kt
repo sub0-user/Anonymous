@@ -21,6 +21,7 @@ import org.server.anonymous.controller.FakeNodeStatusSource
 import org.server.anonymous.controller.IdentityController
 import org.server.anonymous.controller.IdentityViewModel
 import org.server.anonymous.controller.MainController
+import org.server.anonymous.controller.PassphraseDialogController
 import org.server.anonymous.controller.SettingsController
 import org.server.anonymous.controller.SettingsViewModel
 import java.nio.file.Files
@@ -94,5 +95,16 @@ class FxmlSmokeTest {
             val loader = FXMLLoader(MainController::class.java.getResource("settings-view.fxml"), bundle)
             loader.controllerFactory = Callback { SettingsController(SettingsViewModel(FakeNodeStatusSource())) }
             assertNotNull(loader.load<Node>())
+        }
+
+    @Test
+    fun `passphrase dialog root is a DialogPane`() =
+        JavaFxTestSupport.onFxThread {
+            // IdentityController assigns the loaded root to dialog.dialogPane, so a layout
+            // box (VBox) root would throw ClassCastException at runtime on the Backup click.
+            val loader = FXMLLoader(IdentityController::class.java.getResource("passphrase-dialog.fxml"), bundle)
+            loader.controllerFactory =
+                Callback { PassphraseDialogController("hint") }
+            assertNotNull(loader.load<DialogPane>())
         }
 }
