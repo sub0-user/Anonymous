@@ -5,8 +5,10 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
 class TorNodeManagerTest {
@@ -164,6 +166,56 @@ class TorNodeManagerTest {
         manager.start()
         assertTrue(latch.await(15, TimeUnit.SECONDS), "node did not recover from stale lock")
         assertTrue(manager.status() is NodeStatus.Online)
+        manager.stop()
+    }
+
+    @Test
+    fun `watchdog restarts tor when it dies mid-session`() {
+        val dir = newTempDir()
+        val cookie = dir.resolve("cookie")
+        Files.write(cookie, byteArrayOf(1, 2, 3))
+        val alive = AtomicBoolean(true)
+        val spawnCount = AtomicInteger(0)
+        val process =
+            object : TorProcess {
+                override fun start(): TorProcessManager.TorPorts {
+                    spawnCount.incrementAndGet()
+                    return TorProcessManager.TorPorts(9051, 9052)
+                }
+
+                override fun cookieFile(): Path = cookie
+
+                override fun clientAuthDir(): Path = cookie.parent.resolve("client-auth")
+
+                // The tor "dies" when alive flips; a recovery re-spawns a healthy process.
+                override fun isRunning(): Boolean = alive.get() || spawnCount.get() >= 2
+
+                override fun stop() = Unit
+            }
+        val controls = CopyOnWriteArrayList<FakeTorControl>()
+        val manager =
+            TorNodeManager(
+                IdentityService(dir.resolve("id")),
+                process,
+                {
+                    FakeTorControl().also { controls += it }
+                },
+                watchdogIntervalMillis = 50,
+                recoveryCooldownMillis = 50,
+            )
+        val latch = CountDownLatch(1)
+        manager.addStatusListener { if (it is NodeStatus.Online) latch.countDown() }
+        manager.start()
+        assertTrue(latch.await(15, TimeUnit.SECONDS), "node did not come online")
+
+        alive.set(false) // tor crashes mid-session
+        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(15)
+        while (System.nanoTime() < deadline && (manager.status() !is NodeStatus.Online || controls.size < 2)) {
+            Thread.sleep(50)
+        }
+        assertTrue(controls.size >= 2, "watchdog never re-spawned tor (spawns=${spawnCount.get()})")
+        assertTrue(manager.status() is NodeStatus.Online)
+        assertEquals("a".repeat(56) + ".onion", (manager.status() as NodeStatus.Online).address)
         manager.stop()
     }
 }
