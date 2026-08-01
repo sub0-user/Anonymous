@@ -10,8 +10,17 @@
             fx:controller="org.server.anonymous.controller.ChatController" styleClass="chat-pane">
     <top>
         <VBox spacing="2.0" styleClass="chat-header">
-            <Label fx:id="titleLabel" styleClass="chat-title"/>
-            <Label fx:id="subtitleLabel" styleClass="status-text"/>
+            <HBox spacing="8.0" alignment="CENTER_LEFT">
+                <VBox spacing="2.0" HBox.hgrow="ALWAYS">
+                    <Label fx:id="titleLabel" styleClass="chat-title"/>
+                    <Label fx:id="subtitleLabel" styleClass="status-text" wrapText="true"/>
+                </VBox>
+                <Button fx:id="blockButton" onAction="#onBlockClicked"
+                        styleClass="ghost-button" mnemonicParsing="false"/>
+                <Button fx:id="deleteButton" text="%chat.delete" onAction="#onDeleteClicked"
+                        styleClass="ghost-button" mnemonicParsing="false"/>
+            </HBox>
+            <Label fx:id="feedbackLabel" styleClass="error-text"/>
         </VBox>
     </top>
     <center>

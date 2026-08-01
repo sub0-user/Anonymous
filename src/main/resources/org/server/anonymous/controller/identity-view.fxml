@@ -32,4 +32,16 @@
         <Label fx:id="dataDirectoryLabel" styleClass="mono"/>
         <Label fx:id="versionLabel" styleClass="muted-text"/>
     </VBox>
+
+    <VBox styleClass="settings-box" spacing="4.0" maxWidth="Infinity">
+        <Label text="%identity.backup" styleClass="label-caption"/>
+        <Label text="%identity.backup.hint" styleClass="muted-text" wrapText="true"/>
+        <HBox spacing="8.0">
+            <Button text="%identity.backup" onAction="#onBackupClicked"
+                    styleClass="ghost-button" HBox.hgrow="ALWAYS" maxWidth="Infinity" mnemonicParsing="false"/>
+            <Button text="%identity.restore" onAction="#onRestoreClicked"
+                    styleClass="ghost-button" HBox.hgrow="ALWAYS" maxWidth="Infinity" mnemonicParsing="false"/>
+        </HBox>
+        <Label fx:id="backupMessageLabel" styleClass="muted-text" wrapText="true"/>
+    </VBox>
 </VBox>

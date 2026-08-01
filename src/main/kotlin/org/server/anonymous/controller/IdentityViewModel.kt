@@ -1,9 +1,13 @@
 package org.server.anonymous.controller
 
 import javafx.application.Platform
+import javafx.beans.property.SimpleObjectProperty
 import javafx.beans.property.SimpleStringProperty
+import org.server.anonymous.business.IdentityBackup
+import org.server.anonymous.business.IdentityService
 import org.server.anonymous.business.NodeStatus
 import org.server.anonymous.business.NodeStatusSource
+import org.server.anonymous.business.OpResult
 
 /**
  * Identity screen data. The onion address and node status come from the real
@@ -11,11 +15,13 @@ import org.server.anonymous.business.NodeStatusSource
  */
 class IdentityViewModel(
     private val nodeStatusSource: NodeStatusSource,
+    private val identityService: IdentityService,
 ) {
     val onionAddress = SimpleStringProperty("starting…")
     val nodeStatus = SimpleStringProperty("starting Tor…")
     val dataDirectory = SimpleStringProperty(System.getProperty("user.home") + "/.anonymous")
-    val versionLabel = SimpleStringProperty("v1.0-SNAPSHOT · phase 2")
+    val versionLabel = SimpleStringProperty("v1.0-SNAPSHOT · phase 3")
+    val backupMessage = SimpleObjectProperty<String?>(null)
 
     init {
         nodeStatusSource.addStatusListener { status -> Platform.runLater { applyStatus(status) } }
@@ -37,4 +43,26 @@ class IdentityViewModel(
             }
         }
     }
+
+    /** Returns the passphrase-encrypted backup bytes, or a failure. */
+    fun exportIdentity(passphrase: CharArray): OpResult<ByteArray> =
+        runCatching { IdentityBackup.export(identityService.getOrCreate().seed, passphrase) }
+            .fold(
+                { OpResult.Success(it) },
+                { OpResult.Failure(it.message ?: "Export failed") },
+            )
+
+    /** Restores the seed from a backup after validating the passphrase. */
+    fun importIdentity(
+        data: ByteArray,
+        passphrase: CharArray,
+    ): OpResult<String> =
+        runCatching {
+            val seed = IdentityBackup.import(data, passphrase)
+            identityService.replace(seed)
+            "ok"
+        }.fold(
+            { OpResult.Success(it) },
+            { OpResult.Failure(it.message ?: "Import failed") },
+        )
 }

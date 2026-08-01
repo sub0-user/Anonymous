@@ -23,6 +23,8 @@
             <ListView fx:id="chatListView" styleClass="chat-list" VBox.vgrow="ALWAYS"/>
             <Button text="%add.contact" onAction="#onAddContactClicked"
                     styleClass="accent-button" maxWidth="Infinity" mnemonicParsing="false"/>
+            <Button text="%nav.requests" onAction="#onShowRequestsClicked"
+                    styleClass="ghost-button" maxWidth="Infinity" mnemonicParsing="false"/>
             <HBox spacing="8.0">
                 <Button text="%nav.my_number" onAction="#onShowIdentityClicked"
                         styleClass="ghost-button" HBox.hgrow="ALWAYS" maxWidth="Infinity" mnemonicParsing="false"/>

@@ -16,6 +16,8 @@ import org.server.anonymous.business.AppGraph
 import org.server.anonymous.business.model.Contact
 import java.util.ResourceBundle
 
+/** Root navigation + wiring between views. */
+@Suppress("TooManyFunctions") // navigation surface: one handler per sidebar action
 class MainController(
     private val appGraph: AppGraph,
 ) {
@@ -28,7 +30,8 @@ class MainController(
     private lateinit var contentStack: StackPane
 
     private val chatListViewModel = ChatListViewModel(appGraph.contactService)
-    private val identityViewModel = IdentityViewModel(appGraph.torNodeManager)
+    private val requestsViewModel = RequestsViewModel(appGraph.contactService)
+    private val identityViewModel = IdentityViewModel(appGraph.torNodeManager, appGraph.identityService)
     private val settingsViewModel = SettingsViewModel(appGraph.torNodeManager)
     private var chatViewModel: ChatViewModel? = null
 
@@ -71,6 +74,12 @@ class MainController(
     }
 
     @FXML
+    fun onShowRequestsClicked() {
+        requestsViewModel.refresh()
+        showRequests()
+    }
+
+    @FXML
     fun onShowIdentityClicked() {
         showIdentity()
     }
@@ -78,6 +87,11 @@ class MainController(
     @FXML
     fun onShowSettingsClicked() {
         showSettings()
+    }
+
+    private fun showRequests() {
+        val view: Node = load("requests-view.fxml") { RequestsController(requestsViewModel) }
+        swapContent(view)
     }
 
     private fun showSettings() {
@@ -91,9 +105,22 @@ class MainController(
     }
 
     private fun showChat(contact: Contact) {
-        val viewModel = ChatViewModel(appGraph.messageService, contact)
+        val viewModel =
+            ChatViewModel(
+                appGraph.messageService,
+                appGraph.contactService,
+                appGraph.torNodeManager,
+                appGraph.identityService,
+                contact,
+            )
         chatViewModel = viewModel
-        val view: Node = load("chat-view.fxml") { ChatController(viewModel) }
+        val view: Node =
+            load("chat-view.fxml") {
+                ChatController(viewModel) {
+                    chatListViewModel.refresh()
+                    showIdentity()
+                }
+            }
         swapContent(view)
     }
 
