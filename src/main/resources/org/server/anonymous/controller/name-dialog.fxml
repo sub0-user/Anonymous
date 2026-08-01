@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.ButtonType?>
+<?import javafx.scene.control.DialogPane?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.VBox?>
+<DialogPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="org.server.anonymous.controller.NameDialogController" prefWidth="380.0" styleClass="dialog-pane">
+    <content>
+        <VBox spacing="10.0">
+            <Label fx:id="hintLabel" styleClass="muted-text" wrapText="true"/>
+            <TextField fx:id="nameField" promptText="%room.name.prompt" styleClass="search-field"/>
+        </VBox>
+    </content>
+    <buttonTypes>
+        <ButtonType fx:constant="CANCEL"/>
+    </buttonTypes>
+</DialogPane>

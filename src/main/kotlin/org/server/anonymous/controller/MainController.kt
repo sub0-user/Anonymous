@@ -13,7 +13,9 @@ import javafx.scene.layout.StackPane
 import javafx.util.Callback
 import org.server.anonymous.AnonymousApplication
 import org.server.anonymous.business.AppGraph
+import org.server.anonymous.business.OpResult
 import org.server.anonymous.business.model.Contact
+import org.server.anonymous.business.model.RoomRecord
 import java.util.ResourceBundle
 
 /** Root navigation + wiring between views. */
@@ -25,11 +27,14 @@ class MainController(
 
     @FXML private lateinit var chatListView: ListView<Contact>
 
+    @FXML private lateinit var roomsListView: ListView<RoomRecord>
+
     @Suppress("UnusedPrivateProperty") // injected by FXML; populated by the child views
     @FXML
     private lateinit var contentStack: StackPane
 
     private val chatListViewModel = ChatListViewModel(appGraph.contactService)
+    private val roomsListViewModel = RoomsListViewModel(appGraph.roomMessenger)
     private val requestsViewModel = RequestsViewModel(appGraph.contactService)
     private val identityViewModel = IdentityViewModel(appGraph.torNodeManager, appGraph.identityService)
     private val settingsViewModel = SettingsViewModel(appGraph.torNodeManager)
@@ -43,6 +48,11 @@ class MainController(
         chatListView.setCellFactory { ContactCell() }
         chatListView.selectionModel.selectedItemProperty().addListener { _, _, selected ->
             if (selected != null) showChat(selected)
+        }
+        roomsListView.items = roomsListViewModel.rooms
+        roomsListView.setCellFactory { RoomCell() }
+        roomsListView.selectionModel.selectedItemProperty().addListener { _, _, selected ->
+            if (selected != null) showRoom(selected)
         }
         showIdentity()
     }
@@ -70,6 +80,56 @@ class MainController(
         dialog.showAndWait().ifPresent { added ->
             chatListViewModel.refresh()
             chatListView.selectionModel.select(added)
+        }
+    }
+
+    @FXML
+    fun onNewRoomClicked() {
+        val bundle = ResourceBundle.getBundle("org.server.anonymous.messages")
+        val viewModel = NewRoomViewModel(appGraph.roomHost)
+        val dialog = Dialog<RoomRecord>()
+        val loader = FXMLLoader(MainController::class.java.getResource("new-room-dialog.fxml"), bundle)
+        loader.controllerFactory = Callback { NewRoomDialogController(viewModel) }
+        dialog.dialogPane = loader.load()
+        dialog.dialogPane.stylesheets.add(AnonymousApplication.stylesheet())
+        dialog.title = bundle.getString("rooms.new")
+        val createType = ButtonType(bundle.getString("dialog.create"), ButtonBar.ButtonData.OK_DONE)
+        dialog.dialogPane.buttonTypes.add(createType)
+        dialog.dialogPane.lookupButton(createType).addEventFilter(ActionEvent.ACTION) { event ->
+            viewModel.create()
+            if (viewModel.result.get() !is OpResult.Success) {
+                event.consume()
+            }
+        }
+        dialog.setResultConverter { _ -> (viewModel.result.get() as? OpResult.Success)?.value }
+        dialog.showAndWait().ifPresent { room ->
+            roomsListViewModel.refresh()
+            showRoom(room)
+        }
+    }
+
+    @FXML
+    fun onJoinRoomClicked() {
+        val bundle = ResourceBundle.getBundle("org.server.anonymous.messages")
+        val viewModel = JoinRoomViewModel(appGraph.roomMessenger)
+        val dialog = Dialog<RoomRecord>()
+        val loader = FXMLLoader(MainController::class.java.getResource("join-room-dialog.fxml"), bundle)
+        loader.controllerFactory = Callback { JoinRoomDialogController(viewModel) }
+        dialog.dialogPane = loader.load()
+        dialog.dialogPane.stylesheets.add(AnonymousApplication.stylesheet())
+        dialog.title = bundle.getString("rooms.join")
+        val joinType = ButtonType(bundle.getString("dialog.join"), ButtonBar.ButtonData.OK_DONE)
+        dialog.dialogPane.buttonTypes.add(joinType)
+        dialog.dialogPane.lookupButton(joinType).addEventFilter(ActionEvent.ACTION) { event ->
+            viewModel.acceptAndJoin()
+            if (viewModel.result.get() !is OpResult.Success) {
+                event.consume()
+            }
+        }
+        dialog.setResultConverter { _ -> (viewModel.result.get() as? OpResult.Success)?.value }
+        dialog.showAndWait().ifPresent { room ->
+            roomsListViewModel.refresh()
+            showRoom(room)
         }
     }
 
@@ -121,6 +181,18 @@ class MainController(
                     showIdentity()
                 }
             }
+        swapContent(view)
+    }
+
+    private fun showRoom(room: RoomRecord) {
+        val viewModel =
+            RoomChatViewModel(
+                appGraph.roomMessenger,
+                if (room.isFounder) appGraph.roomHost else null,
+                room.id,
+                { appGraph.contactService.listContacts() },
+            )
+        val view: Node = load("room-chat-view.fxml") { RoomChatController(viewModel) }
         swapContent(view)
     }
 
