@@ -33,7 +33,7 @@ class AnonymousApplication : Application() {
         stage.title = bundle.getString("app.name")
         stage.icons.add(
             javafx.scene.image.Image(
-                AnonymousApplication::class.java.getResourceAsStream("logo/logo-icon.png"),
+                AnonymousApplication::class.java.getResourceAsStream("logo/icon-square.png"),
             ),
         )
         stage.minWidth = 900.0

@@ -89,10 +89,10 @@ chmod +x "$BIN_DIR/anonymous"
 
 if [ "$CREATE_DESKTOP" = "1" ]; then
   mkdir -p "$HOME/.local/share/applications"
-  ICON_SRC="$PROJECT_ROOT/src/main/resources/org/server/anonymous/logo/logo.png"
+  ICON_SRC="$PROJECT_ROOT/src/main/resources/org/server/anonymous/logo/icon-square.png"
   if [ -f "$ICON_SRC" ]; then
-    cp "$ICON_SRC" "$PREFIX/logo.png"
-    ICON="$PREFIX/logo.png"
+    cp "$ICON_SRC" "$PREFIX/icon.png"
+    ICON="$PREFIX/icon.png"
   else
     ICON=""
   fi
