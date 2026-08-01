@@ -87,4 +87,9 @@ class RoomChatController(
         dialog.showAndWait()
         viewModel.syncAfterDialog()
     }
+
+    @FXML
+    fun onClearHistoryClicked() {
+        viewModel.clearHistory()
+    }
 }

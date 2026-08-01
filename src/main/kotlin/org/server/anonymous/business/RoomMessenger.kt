@@ -24,12 +24,24 @@ class RoomMessenger(
     private val identity: () -> Identity,
     private val sender: (String, ByteArray?, Byte, ByteArray) -> Boolean,
     private val clientAuthInstaller: OnionClientAuth? = null,
+    /** Encrypted at-rest history (Phase A1); null keeps the in-memory-only behavior for tests. */
+    private val roomHistory: MessageJournal<RoomMessageItem>? = null,
 ) {
     private val keys: X25519KeyPair by lazy { IdentityKeys.x25519KeyPairFromSeed(identity().seed) }
     private val messages = mutableMapOf<Long, MutableList<RoomMessageItem>>()
     private val listeners = CopyOnWriteArrayList<(RoomMessageItem) -> Unit>()
     private val timeFormat = DateTimeFormatter.ofPattern("HH:mm")
     private var nextId = 1L
+
+    init {
+        // Restore persisted history; a later record for the same id (a status change) wins.
+        roomHistory?.load()?.forEach { (roomId, item) ->
+            val list = messages.getOrPut(roomId) { mutableListOf() }
+            val index = list.indexOfLast { it.id == item.id }
+            if (index >= 0) list[index] = item else list += item
+            if (item.id >= nextId) nextId = item.id + 1
+        }
+    }
 
     fun rooms(): List<RoomRecord> = store.loadAll()
 
@@ -40,6 +52,12 @@ class RoomMessenger(
 
     fun addMessageListener(listener: (RoomMessageItem) -> Unit) {
         listeners += listener
+    }
+
+    /** Deletes one room's history from disk and memory. */
+    fun clearHistory(roomId: Long) {
+        synchronized(messages) { messages.remove(roomId) }
+        roomHistory?.clear(roomId)
     }
 
     /**
@@ -100,6 +118,7 @@ class RoomMessenger(
         if (record == null) return OpResult.Failure("Room not found")
         val message = RoomMessageItem(nextId(), roomId, keys.publicKey, text, nowLabel(), isOutgoing = true)
         synchronized(messages) { messages.getOrPut(roomId) { mutableListOf() } += message }
+        roomHistory?.append(roomId, message)
         notify(message)
         val envelope =
             RoomEnvelope.encodeRoomMessage(
@@ -223,6 +242,7 @@ class RoomMessenger(
                 isOutgoing = false,
             )
         synchronized(messages) { messages.getOrPut(record.id) { mutableListOf() } += message }
+        roomHistory?.append(record.id, message)
         notify(message)
     }
 

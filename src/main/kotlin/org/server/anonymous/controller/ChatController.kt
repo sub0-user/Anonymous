@@ -76,4 +76,9 @@ class ChatController(
             onContactDeleted()
         }
     }
+
+    @FXML
+    fun onClearHistoryClicked() {
+        viewModel.clearHistory()
+    }
 }

@@ -29,6 +29,8 @@ class P2pMessageService(
     private val socketFactory: (Int, String, Int) -> Socket = defaultSocksSocket,
     private val rateLimitPerMinute: Int = 30,
     private val roomInbound: (ByteArray, String, Byte, ByteArray) -> Unit = { _, _, _, _ -> },
+    /** Encrypted at-rest history (Phase A1); null keeps the in-memory-only behavior for tests. */
+    private val messageHistory: MessageJournal<MessageItem>? = null,
 ) : MessageService {
     private val store = mutableMapOf<Long, MutableList<MessageItem>>()
     private val listeners = CopyOnWriteArrayList<(MessageItem) -> Unit>()
@@ -43,6 +45,16 @@ class P2pMessageService(
     private val keys: X25519KeyPair by lazy { IdentityKeys.x25519KeyPairFromSeed(identity().seed) }
     private val timeFormat = DateTimeFormatter.ofPattern("HH:mm")
 
+    init {
+        // Restore persisted history; a later record for the same id (a status change) wins.
+        messageHistory?.load()?.forEach { (contactId, item) ->
+            val list = store.getOrPut(contactId) { mutableListOf() }
+            val index = list.indexOfLast { it.id == item.id }
+            if (index >= 0) list[index] = item else list += item
+            if (item.id >= nextId) nextId = item.id + 1
+        }
+    }
+
     override fun messagesFor(contactId: Long): List<MessageItem> =
         synchronized(store) {
             store[contactId]?.toList() ?: emptyList()
@@ -50,6 +62,12 @@ class P2pMessageService(
 
     override fun addMessageListener(listener: (MessageItem) -> Unit) {
         listeners += listener
+    }
+
+    /** Deletes this conversation's history from disk and memory. */
+    override fun clearHistory(contactId: Long) {
+        synchronized(store) { store.remove(contactId) }
+        messageHistory?.clear(contactId)
     }
 
     override fun send(
@@ -68,6 +86,7 @@ class P2pMessageService(
         if (failure != null) return OpResult.Failure(failure)
         val message = MessageItem(nextId(), MessageDirection.OUT, trimmed, MessageStatus.SENT, nowLabel())
         synchronized(store) { store.getOrPut(contactId) { mutableListOf() } += message }
+        messageHistory?.append(contactId, message)
         notify(message)
         deliverAsync(contact!!, message)
         return OpResult.Success(message)
@@ -228,6 +247,7 @@ class P2pMessageService(
     ) {
         val message = MessageItem(nextId(), MessageDirection.IN, text, MessageStatus.DELIVERED, nowLabel())
         synchronized(store) { store.getOrPut(contact.id) { mutableListOf() } += message }
+        messageHistory?.append(contact.id, message)
         notify(message)
     }
 
@@ -261,7 +281,10 @@ class P2pMessageService(
                     next
                 }
             }
-        if (updated != null) notify(updated)
+        if (updated != null) {
+            messageHistory?.append(contactId, updated)
+            notify(updated)
+        }
     }
 
     private fun notify(message: MessageItem) {

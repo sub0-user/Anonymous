@@ -1,5 +1,7 @@
 package org.server.anonymous.business
 
+import org.server.anonymous.business.model.MessageItem
+import org.server.anonymous.business.model.RoomMessageItem
 import java.nio.file.Path
 
 /**
@@ -25,6 +27,26 @@ class AppGraph {
 
     private val roomStore = RoomStore(userData.resolve("rooms"))
 
+    /** Encrypted at-rest 1:1 history — one file, records carry the contact id (Phase A1). */
+    private val messageHistory: MessageJournal<MessageItem> by lazy {
+        MessageJournal(
+            userData.resolve("messages").resolve("conversations.hist"),
+            { identityService.getOrCreate() },
+            HistoryCodec::encodeMessageItem,
+            HistoryCodec::decodeMessageItem,
+        )
+    }
+
+    /** Encrypted at-rest room history — one file, records carry the room id (Phase A1). */
+    private val roomHistory: MessageJournal<RoomMessageItem> by lazy {
+        MessageJournal(
+            userData.resolve("rooms").resolve("messages.hist"),
+            { identityService.getOrCreate() },
+            HistoryCodec::encodeRoomItem,
+            HistoryCodec::decodeRoomItem,
+        )
+    }
+
     private val torSender: TorSender by lazy {
         TorSender({ torNodeManager.status() }, { identityKeys() })
     }
@@ -34,9 +56,15 @@ class AppGraph {
     }
 
     val roomMessenger: RoomMessenger by lazy {
-        RoomMessenger(roomStore, { identityService.getOrCreate() }, { address, key, type, body ->
-            torSender.send(address, key, type, body)
-        }, clientAuth)
+        RoomMessenger(
+            roomStore,
+            { identityService.getOrCreate() },
+            { address, key, type, body ->
+                torSender.send(address, key, type, body)
+            },
+            clientAuthInstaller = clientAuth,
+            roomHistory = roomHistory,
+        )
     }
 
     val roomHost: RoomHost by lazy {
@@ -57,6 +85,7 @@ class AppGraph {
             { torNodeManager.inboundSocket },
             { identityService.getOrCreate() },
             roomInbound = { key, address, type, body -> roomMessenger.handleInbound(key, address, type, body) },
+            messageHistory = messageHistory,
         )
 
     private fun identityKeys(): X25519KeyPair = IdentityKeys.x25519KeyPairFromSeed(identityService.getOrCreate().seed)

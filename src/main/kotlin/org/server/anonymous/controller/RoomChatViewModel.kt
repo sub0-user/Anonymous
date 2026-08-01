@@ -96,6 +96,12 @@ class RoomChatViewModel(
 
     private fun currentRoom(): RoomRecord? = roomMessenger.rooms().firstOrNull { it.id == roomId }
 
+    /** Clears this room's history from memory and from at-rest storage. */
+    fun clearHistory() {
+        roomMessenger.clearHistory(roomId)
+        sync()
+    }
+
     /** Re-reads the room record (after dialogs or membership changes). */
     fun syncAfterDialog() {
         sync()
