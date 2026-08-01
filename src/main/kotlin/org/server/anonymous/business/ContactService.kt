@@ -44,4 +44,13 @@ interface ContactService {
         contactId: Long,
         key: ByteArray,
     )
+
+    /** The blocked addresses, for backup/restore (Phase B1). */
+    fun blockedAddresses(): List<String> = emptyList()
+
+    /** Replaces the contact list and block list from a backup restore. */
+    fun restore(
+        contacts: List<Contact>,
+        blocked: List<String>,
+    ) = Unit
 }

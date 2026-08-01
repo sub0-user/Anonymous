@@ -36,7 +36,13 @@ class MainController(
     private val chatListViewModel = ChatListViewModel(appGraph.contactService)
     private val roomsListViewModel = RoomsListViewModel(appGraph.roomMessenger)
     private val requestsViewModel = RequestsViewModel(appGraph.contactService)
-    private val identityViewModel = IdentityViewModel(appGraph.torNodeManager, appGraph.identityService)
+    private val identityViewModel =
+        IdentityViewModel(
+            appGraph.torNodeManager,
+            appGraph.identityService,
+            appGraph.contactService,
+            appGraph.roomStore,
+        )
     private val settingsViewModel = SettingsViewModel(appGraph.torNodeManager)
     private var chatViewModel: ChatViewModel? = null
 

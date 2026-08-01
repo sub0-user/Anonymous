@@ -25,7 +25,7 @@ class AppGraph {
         torNodeManager.controlClient ?: error("node offline")
     }
 
-    private val roomStore = RoomStore(userData.resolve("rooms"))
+    val roomStore = RoomStore(userData.resolve("rooms"))
 
     /** Encrypted at-rest 1:1 history — one file, records carry the contact id (Phase A1). */
     private val messageHistory: MessageJournal<MessageItem> by lazy {

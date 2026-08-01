@@ -81,5 +81,25 @@ class ContactBook : ContactService {
         key: ByteArray,
     ) {
         peerKeys[contactId] = key
+        // Keep the Contact model in sync so backups export the safety-number binding too.
+        val index = contacts.indexOfFirst { it.id == contactId }
+        if (index >= 0) contacts[index] = contacts[index].copy(peerPublicKey = key)
+    }
+
+    override fun blockedAddresses(): List<String> = blocked.toList()
+
+    /** Restores the contact list + block list from a backup; ids come back exactly as backed up. */
+    override fun restore(
+        contacts: List<Contact>,
+        blocked: List<String>,
+    ) {
+        this.contacts.clear()
+        this.contacts += contacts
+        this.blocked.clear()
+        this.blocked += blocked
+        peerKeys.clear()
+        contacts.forEach { contact -> contact.peerPublicKey?.let { peerKeys[contact.id] = it } }
+        val maxId = contacts.maxOfOrNull { it.id } ?: 0L
+        if (maxId >= nextId) nextId = maxId + 1
     }
 }
