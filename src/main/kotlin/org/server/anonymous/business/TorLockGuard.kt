@@ -6,10 +6,9 @@ import java.util.concurrent.TimeUnit
 
 /**
  * Reaps a tor left over from a hard-killed Anonymous session so a fresh one can take the data
- * dir. Tor writes its PID into data/lock; a dead owner is stale (SIGKILL leaves the file), a
- * live owner can only be a leftover tor of a previous session using this exact data dir — we
- * are the only writer of that path, so it is ours to reap. Anything else is left for tor to
- * report itself.
+ * dir. Tor's data/lock is only an flock anchor — it carries no PID — so identify a leftover by
+ * scanning live processes for one whose command line references our data dir; only our own tor
+ * ever does. After the holder is gone (or never existed), the stale lock file is removed.
  */
 internal class TorLockGuard(
     private val dataDir: Path,
@@ -17,28 +16,21 @@ internal class TorLockGuard(
     fun clearStaleLock() {
         val lock = dataDir.resolve("tor/data/lock")
         if (!Files.exists(lock)) return
-        val pid = runCatching { Files.readString(lock).trim().toIntOrNull() }.getOrNull()
-        if (pid == null) return
-        if (isDead(pid)) {
-            runCatching { Files.deleteIfExists(lock) }
-        } else if (isOurLeftoverTor(pid)) {
-            killAndWait(pid)
-            runCatching { Files.deleteIfExists(lock) }
+        killLeftovers()
+        // The holder is gone (or there never was one): the lock anchor is stale. Deleting it is
+        // safe even for an unidentified holder, which keeps its (unlinked) inode lock harmlessly.
+        runCatching { Files.deleteIfExists(lock) }
+    }
+
+    private fun killLeftovers() {
+        val leftovers = mutableListOf<ProcessHandle>()
+        for (p in ProcessHandle.allProcesses()) {
+            val cmdline = p.info().commandLine().orElse("")
+            if (cmdline.contains(dataDir.toString())) leftovers += p
         }
-    }
-
-    private fun isDead(pid: Int): Boolean = ProcessHandle.of(pid.toLong()).map { !it.isAlive }.orElse(true)
-
-    private fun isOurLeftoverTor(pid: Int): Boolean {
-        val owner = ProcessHandle.of(pid.toLong()).orElse(null) ?: return false
-        val cmdline = owner.info().commandLine().orElse("")
-        return cmdline.contains("tor") && cmdline.contains(dataDir.toString())
-    }
-
-    private fun killAndWait(pid: Int) {
-        ProcessHandle.of(pid.toLong()).ifPresent { it.destroy() }
+        for (leftover in leftovers) leftover.destroy()
         val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10)
-        while (ProcessHandle.of(pid.toLong()).map { it.isAlive }.orElse(false) && System.nanoTime() < deadline) {
+        while (leftovers.any { it.isAlive } && System.nanoTime() < deadline) {
             Thread.sleep(200)
         }
     }
