@@ -185,5 +185,8 @@ jlink {
     options.set(listOf("--strip-debug", "--compress", "2", "--no-header-files", "--no-man-pages"))
     launcher {
         name = "anonymous"
+        // A modest heap cap keeps the JVM a small OOM target on constrained machines when the
+        // user opens a link in the browser (the browser takes the memory, not the app).
+        jvmArgs = listOf("-Xmx512m", "-Xms64m")
     }
 }

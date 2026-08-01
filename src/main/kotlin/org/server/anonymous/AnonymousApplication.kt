@@ -14,6 +14,7 @@ class AnonymousApplication : Application() {
     private val appGraph = AppGraph()
 
     override fun start(stage: Stage) {
+        instance = this
         val bundle = ResourceBundle.getBundle("org.server.anonymous.messages")
         val loader =
             FXMLLoader(
@@ -45,6 +46,10 @@ class AnonymousApplication : Application() {
     }
 
     companion object {
+        /** The running application — lets views reach JavaFX services (e.g. opening links). */
+        lateinit var instance: AnonymousApplication
+            private set
+
         fun stylesheet(): String = AnonymousApplication::class.java.getResource("css/onion-dark.css").toExternalForm()
     }
 }

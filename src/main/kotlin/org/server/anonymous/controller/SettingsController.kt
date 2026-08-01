@@ -2,8 +2,7 @@ package org.server.anonymous.controller
 
 import javafx.fxml.FXML
 import javafx.scene.control.Label
-import java.awt.Desktop
-import java.net.URI
+import org.server.anonymous.AnonymousApplication
 
 class SettingsController(
     private val viewModel: SettingsViewModel,
@@ -39,9 +38,10 @@ class SettingsController(
 
     /**
      * Opens the link in the user's own browser on an explicit button click — the app itself
-     * never fetches anything; the user chooses to leave.
+     * never fetches anything; the user chooses to leave. Uses JavaFX's HostServices (the
+     * platform browser), never AWT.
      */
     private fun openUrl(url: String) {
-        runCatching { Desktop.getDesktop().browse(URI(url)) }
+        runCatching { AnonymousApplication.instance.hostServices.showDocument(url) }
     }
 }
