@@ -12,6 +12,22 @@ data class SessionKeys(
     val receiveKey: ByteArray,
 )
 
+/** Direction-assigned keys for one connection: the initiator sends with the first half. */
+data class DirectionalKeys(
+    val outbound: ByteArray,
+    val inbound: ByteArray,
+)
+
+fun directionalKeys(
+    keys: SessionKeys,
+    isInitiator: Boolean,
+): DirectionalKeys =
+    if (isInitiator) {
+        DirectionalKeys(keys.sendKey, keys.receiveKey)
+    } else {
+        DirectionalKeys(keys.receiveKey, keys.sendKey)
+    }
+
 /** HKDF-SHA256 (RFC 5869) + ChaCha20-Poly1305 AEAD — the Phase 3 messaging crypto. */
 object SessionCrypto {
     const val KEY_LENGTH = 32
@@ -34,7 +50,9 @@ object SessionCrypto {
         )
     }
 
-    fun randomNonce(): ByteArray = ByteArray(NONCE_LENGTH).also { SecureRandom().nextBytes(it) }
+    fun randomNonce(): ByteArray = randomBytes(NONCE_LENGTH)
+
+    fun randomBytes(length: Int): ByteArray = ByteArray(length).also { SecureRandom().nextBytes(it) }
 
     fun encrypt(
         key: ByteArray,
