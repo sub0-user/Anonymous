@@ -3,8 +3,6 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ListView?>
 <?import javafx.scene.control.TextField?>
-<?import javafx.scene.image.Image?>
-<?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.StackPane?>
@@ -14,9 +12,6 @@
     <left>
         <VBox styleClass="sidebar" minWidth="260.0" prefWidth="280.0" maxWidth="320.0">
             <HBox styleClass="sidebar-header" alignment="CENTER_LEFT" spacing="8.0">
-                <ImageView fitHeight="30.0" preserveRatio="true">
-                    <image><Image url="@logo/icon.png"/></image>
-                </ImageView>
                 <Label text="%app.name" styleClass="app-title"/>
             </HBox>
             <TextField fx:id="searchField" promptText="%search.prompt" styleClass="search-field"/>

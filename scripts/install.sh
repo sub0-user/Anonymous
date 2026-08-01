@@ -102,6 +102,9 @@ if [ "$CREATE_DESKTOP" = "1" ]; then
     printf 'Name=%s\n' "$APP_NAME"
     printf 'Comment=Self-hosted, Tor-based private messenger\n'
     printf 'Exec=%s/bin/anonymous\n' "$PREFIX"
+    # Taskbar icon: the WM matches the window's WM_CLASS
+    # (org.server.anonymous.AnonymousApplication) to this entry and uses its icon.
+    printf 'StartupWMClass=org.server.anonymous.AnonymousApplication\n'
     if [ -n "$ICON" ]; then printf 'Icon=%s\n' "$ICON"; fi
     printf 'Terminal=false\n'
     printf 'Categories=Network;InstantMessaging;\n'
