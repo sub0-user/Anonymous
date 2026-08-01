@@ -4,8 +4,6 @@ import org.server.anonymous.business.model.Contact
 import org.server.anonymous.business.model.MessageDirection
 import org.server.anonymous.business.model.MessageItem
 import org.server.anonymous.business.model.MessageStatus
-import java.net.InetSocketAddress
-import java.net.Proxy
 import java.net.ServerSocket
 import java.net.Socket
 import java.time.LocalTime
@@ -108,30 +106,60 @@ class P2pMessageService(
         message: MessageItem,
     ) {
         senderExecutor.execute {
-            val status =
-                try {
-                    val online = nodeStatus() as? NodeStatus.Online ?: error("node offline")
-                    val socket = socketFactory(online.socksPort, contact.address.value, 80)
-                    try {
-                        val session = MessageSession.initiate(socket, keys, online.address)
-                        try {
-                            val known = contactService.peerPublicKeyOf(contact.id)
-                            if (known != null && !known.contentEquals(session.peerPublicKey)) {
-                                error("peer key changed — verify the safety number")
-                            }
-                            contactService.bindPeerKey(contact.id, session.peerPublicKey)
-                            session.sendMessage(WireProtocol.CONTENT_TEXT.toByte(), message.body.toByteArray())
-                            MessageStatus.DELIVERED
-                        } finally {
-                            session.close()
-                        }
-                    } finally {
-                        socket.close()
-                    }
-                } catch (t: Throwable) {
-                    MessageStatus.FAILED
-                }
+            val status = attemptDelivery(contact, message)
             updateStatus(contact.id, message.id, status)
+        }
+    }
+
+    /**
+     * The first attempt to a brand-new node can time out while Tor fetches its descriptor
+     * and builds the onion circuit; the retry rides the now-warm network.
+     */
+    private fun attemptDelivery(
+        contact: Contact,
+        message: MessageItem,
+    ): MessageStatus {
+        var status = deliverOnce(contact, message)
+        if (status == MessageStatus.FAILED) {
+            status = deliverOnce(contact, message)
+        }
+        return status
+    }
+
+    @Suppress("TooGenericExceptionCaught", "SwallowedException")
+    private fun deliverOnce(
+        contact: Contact,
+        message: MessageItem,
+    ): MessageStatus =
+        try {
+            val online = nodeStatus() as? NodeStatus.Online ?: error("node offline")
+            val socket = socketFactory(online.socksPort, contact.address.value, 80)
+            try {
+                sendViaSession(socket, online.address, contact, message)
+            } finally {
+                socket.close()
+            }
+        } catch (t: Throwable) {
+            MessageStatus.FAILED
+        }
+
+    private fun sendViaSession(
+        socket: Socket,
+        myAddress: String,
+        contact: Contact,
+        message: MessageItem,
+    ): MessageStatus {
+        val session = MessageSession.initiate(socket, keys, myAddress)
+        try {
+            val known = contactService.peerPublicKeyOf(contact.id)
+            if (known != null && !known.contentEquals(session.peerPublicKey)) {
+                error("peer key changed — verify the safety number")
+            }
+            contactService.bindPeerKey(contact.id, session.peerPublicKey)
+            session.sendMessage(WireProtocol.CONTENT_TEXT.toByte(), message.body.toByteArray())
+            return MessageStatus.DELIVERED
+        } finally {
+            session.close()
         }
     }
 
@@ -233,13 +261,12 @@ class P2pMessageService(
     private fun nowLabel(): String = LocalTime.now().format(timeFormat)
 
     private companion object {
-        const val CONNECT_TIMEOUT_MS = 30_000
+        // First onion connection on a fresh circuit can take a while — be generous.
+        const val CONNECT_TIMEOUT_MS = 90_000
 
         /** Default transport: through our own Tor node's SOCKS5 proxy to the onion service. */
         val defaultSocksSocket: (Int, String, Int) -> Socket = { socksPort, host, port ->
-            Socket(Proxy(Proxy.Type.SOCKS, InetSocketAddress("127.0.0.1", socksPort))).apply {
-                connect(InetSocketAddress(host, port), CONNECT_TIMEOUT_MS)
-            }
+            Socks5.connect(socksPort, host, port, CONNECT_TIMEOUT_MS)
         }
     }
 }

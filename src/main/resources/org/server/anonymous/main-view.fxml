@@ -15,7 +15,7 @@
         <VBox styleClass="sidebar" minWidth="260.0" prefWidth="280.0" maxWidth="320.0">
             <HBox styleClass="sidebar-header" alignment="CENTER_LEFT" spacing="8.0">
                 <ImageView fitHeight="24.0" preserveRatio="true">
-                    <image><Image url="@logo/logo.png"/></image>
+                    <image><Image url="@logo/logo-icon.png"/></image>
                 </ImageView>
                 <Label text="%app.name" styleClass="app-title"/>
             </HBox>

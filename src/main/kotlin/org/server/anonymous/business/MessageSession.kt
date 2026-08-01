@@ -48,7 +48,7 @@ class MessageSession private constructor(
 
     init {
         check(myAddress.length <= WireProtocol.MAX_ADDRESS_LENGTH) { "address too long" }
-        socket.soTimeout = 30_000
+        socket.soTimeout = 60_000
         input = DataInputStream(BufferedInputStream(socket.getInputStream()))
         output = DataOutputStream(BufferedOutputStream(socket.getOutputStream()))
 

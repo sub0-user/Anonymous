@@ -4,8 +4,11 @@ import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
+import java.io.ByteArrayInputStream
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.Base64
+import java.util.Properties
 import javax.crypto.AEADBadTagException
 
 class IdentityBackupTest {
@@ -33,10 +36,21 @@ class IdentityBackupTest {
     @Test
     fun `tampered backup is rejected`() {
         val backup = IdentityBackup.export(ByteArray(32) { 1 }, "hunter2".toCharArray())
-        val tampered = backup.copyOf().also { it[it.size - 5] = (it[it.size - 5].toInt() xor 1).toByte() }
+        val tampered = tamperCiphertext(backup)
         assertThrows(AEADBadTagException::class.java) {
             IdentityBackup.import(tampered, "hunter2".toCharArray())
         }
+    }
+
+    /** Corrupts the decoded ciphertext (not the base64 text, which could become invalid base64). */
+    private fun tamperCiphertext(backup: ByteArray): ByteArray {
+        val props = Properties().apply { ByteArrayInputStream(backup).use { load(it) } }
+        val ciphertext = Base64.getDecoder().decode(props.getProperty("ciphertext"))
+        ciphertext[0] = (ciphertext[0].toInt() xor 1).toByte()
+        props.setProperty("ciphertext", Base64.getEncoder().encodeToString(ciphertext))
+        val out = java.io.ByteArrayOutputStream()
+        props.store(out, null)
+        return out.toByteArray()
     }
 
     @Test

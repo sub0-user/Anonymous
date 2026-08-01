@@ -31,6 +31,11 @@ class AnonymousApplication : Application() {
         val scene = Scene(root)
         scene.stylesheets.add(stylesheet())
         stage.title = bundle.getString("app.name")
+        stage.icons.add(
+            javafx.scene.image.Image(
+                AnonymousApplication::class.java.getResourceAsStream("logo/logo-icon.png"),
+            ),
+        )
         stage.minWidth = 900.0
         stage.minHeight = 600.0
         stage.scene = scene

@@ -47,7 +47,7 @@ class IdentityController(
         backupMessageLabel.textProperty().bind(viewModel.backupMessage)
         logoImage.image =
             Image(
-                IdentityController::class.java.getResourceAsStream("/org/server/anonymous/logo/logo.png"),
+                IdentityController::class.java.getResourceAsStream("/org/server/anonymous/logo/logo-icon.png"),
             )
     }
 
