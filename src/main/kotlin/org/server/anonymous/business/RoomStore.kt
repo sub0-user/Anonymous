@@ -67,6 +67,13 @@ class RoomStore(
         Files.deleteIfExists(fileFor(id))
     }
 
+    /** Restores a room set from a backup (Phase B1); ids and keys come back exactly as backed up. */
+    fun restoreAll(records: List<RoomRecord>) {
+        for (record in records) {
+            save(record)
+        }
+    }
+
     private fun load(path: Path): RoomRecord {
         val props =
             Properties().apply {

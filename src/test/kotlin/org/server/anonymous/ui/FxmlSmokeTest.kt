@@ -69,8 +69,14 @@ class FxmlSmokeTest {
     fun `identity view loads`() =
         JavaFxTestSupport.onFxThread {
             val loader = FXMLLoader(MainController::class.java.getResource("identity-view.fxml"), bundle)
-            loader.controllerFactory =
-                Callback { IdentityController(IdentityViewModel(FakeNodeStatusSource(), tempIdentity())) }
+            val identity =
+                IdentityViewModel(
+                    FakeNodeStatusSource(),
+                    tempIdentity(),
+                    InMemoryContactService(),
+                    RoomStore(tempDir()),
+                )
+            loader.controllerFactory = Callback { IdentityController(identity) }
             assertNotNull(loader.load<Node>())
         }
 

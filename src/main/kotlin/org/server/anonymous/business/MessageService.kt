@@ -13,5 +13,8 @@ interface MessageService {
     /** Notified for every new message and every status change (on background threads). */
     fun addMessageListener(listener: (MessageItem) -> Unit) = Unit
 
+    /** Deletes one conversation's history from memory and from at-rest storage. */
+    fun clearHistory(contactId: Long) = Unit
+
     fun stop() = Unit
 }

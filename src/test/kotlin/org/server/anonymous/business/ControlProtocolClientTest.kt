@@ -13,6 +13,7 @@ import java.net.ServerSocket
 import java.net.Socket
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 class ControlProtocolClientTest {
     private val executor = Executors.newCachedThreadPool()
@@ -124,6 +125,23 @@ class ControlProtocolClientTest {
         assertEquals(0, blob[32].toInt() and 0x07)
         assertEquals(0x40, blob[63].toInt() and 0x40)
         assertEquals(0, blob[63].toInt() and 0x80)
+    }
+
+    @Test
+    fun `concurrent commands on one connection are serialized`() {
+        val port = freePort()
+        fakeTorServer(port, mapOf("GETINFO status/bootstrap-phase" to "250 PROGRESS=100\n"))
+        val client = ControlProtocolClient()
+        client.connect("127.0.0.1", port)
+        // 50 threads sharing one client: without the @Synchronized send, interleaved writes
+        // would garble the request/reply pairs and some of these would come back null.
+        val futures = mutableListOf<java.util.concurrent.Future<Int?>>()
+        repeat(50) {
+            futures += executor.submit<Int?> { client.bootstrapProgress() }
+        }
+        val results = futures.map { it.get(10, TimeUnit.SECONDS) }
+        assertEquals(50, results.count { it == 100 })
+        client.close()
     }
 
     private fun freePort(): Int = ServerSocket(0).use { it.localPort }

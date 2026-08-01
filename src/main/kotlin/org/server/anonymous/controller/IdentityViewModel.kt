@@ -3,11 +3,13 @@ package org.server.anonymous.controller
 import javafx.application.Platform
 import javafx.beans.property.SimpleObjectProperty
 import javafx.beans.property.SimpleStringProperty
-import org.server.anonymous.business.IdentityBackup
+import org.server.anonymous.business.ContactService
+import org.server.anonymous.business.DataBackup
 import org.server.anonymous.business.IdentityService
 import org.server.anonymous.business.NodeStatus
 import org.server.anonymous.business.NodeStatusSource
 import org.server.anonymous.business.OpResult
+import org.server.anonymous.business.RoomStore
 
 /**
  * Identity screen data. The onion address and node status come from the real
@@ -16,6 +18,8 @@ import org.server.anonymous.business.OpResult
 class IdentityViewModel(
     private val nodeStatusSource: NodeStatusSource,
     private val identityService: IdentityService,
+    private val contactService: ContactService,
+    private val roomStore: RoomStore,
 ) {
     val onionAddress = SimpleStringProperty("starting…")
     val nodeStatus = SimpleStringProperty("starting Tor…")
@@ -46,20 +50,29 @@ class IdentityViewModel(
 
     /** Returns the passphrase-encrypted backup bytes, or a failure. */
     fun exportIdentity(passphrase: CharArray): OpResult<ByteArray> =
-        runCatching { IdentityBackup.export(identityService.getOrCreate().seed, passphrase) }
-            .fold(
-                { OpResult.Success(it) },
-                { OpResult.Failure(it.message ?: "Export failed") },
+        runCatching {
+            DataBackup.export(
+                seed = identityService.getOrCreate().seed,
+                contacts = contactService.listContacts(),
+                blocked = contactService.blockedAddresses(),
+                rooms = roomStore.loadAll(),
+                passphrase = passphrase,
             )
+        }.fold(
+            { OpResult.Success(it) },
+            { OpResult.Failure(it.message ?: "Export failed") },
+        )
 
-    /** Restores the seed from a backup after validating the passphrase. */
+    /** Restores the seed, contacts and rooms after validating the passphrase. */
     fun importIdentity(
         data: ByteArray,
         passphrase: CharArray,
     ): OpResult<String> =
         runCatching {
-            val seed = IdentityBackup.import(data, passphrase)
-            identityService.replace(seed)
+            val contents = DataBackup.import(data, passphrase)
+            identityService.replace(contents.seed)
+            contactService.restore(contents.contacts, contents.blocked)
+            roomStore.restoreAll(contents.rooms)
             "ok"
         }.fold(
             { OpResult.Success(it) },

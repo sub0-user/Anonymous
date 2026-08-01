@@ -19,12 +19,21 @@ class TorNodeManager(
     private val identityService: IdentityService,
     private val torProcess: TorProcess,
     private val controlFactory: () -> TorControl,
+    /** How often the watchdog checks tor liveness (Phase A3); short in tests, 5s in the app. */
+    private val watchdogIntervalMillis: Long = 5_000,
+    /** Minimum gap between recovery attempts so a dying tor never spins the CPU. */
+    private val recoveryCooldownMillis: Long = 10_000,
 ) : NodeStatusSource {
     private val executor = Executors.newSingleThreadExecutor { r -> Thread(r, "tor-node").apply { isDaemon = true } }
+    private val watchdogExecutor =
+        Executors.newSingleThreadScheduledExecutor { r -> Thread(r, "tor-watchdog").apply { isDaemon = true } }
     private val listeners = CopyOnWriteArrayList<(NodeStatus) -> Unit>()
     private var currentStatus: NodeStatus = NodeStatus.Offline("not started")
     private var control: TorControl? = null
     private var inbound: ServerSocket? = null
+    private var started = false
+    private var nodeWasUp = false
+    private var lastRecoveryAttemptAt = 0L
 
     override fun addStatusListener(listener: (NodeStatus) -> Unit) {
         listeners += listener
@@ -34,12 +43,46 @@ class TorNodeManager(
 
     // Defensive boundary: any failure must surface as Offline, never die silently.
     fun start() {
+        started = true
         executor.execute {
             val lastError = startWithRetry(attempts = 3)
             if (lastError != null) {
                 System.err.println("[tor-node] start failed: ${lastError.message}")
                 setStatus(NodeStatus.Offline(lastError.message ?: lastError::class.simpleName ?: "error"))
                 runCatching { cleanup() } // keep the error reason, just tear down the process
+            }
+        }
+        watchdogExecutor.scheduleWithFixedDelay(
+            { runCatching { watchdogTick() } },
+            watchdogIntervalMillis,
+            watchdogIntervalMillis,
+            TimeUnit.MILLISECONDS,
+        )
+    }
+
+    /**
+     * Phase A3 watchdog: tor can die mid-session (OOM, crash, kill). When the node was up and
+     * the process is gone, tear down, re-spawn with the same identity (same onion address) and
+     * re-register the services. A failed recovery retries on later ticks, gated by the cooldown.
+     */
+    private fun watchdogTick() {
+        if (!started) return
+        if (nodeWasUp && !torProcess.isRunning() && currentStatus !is NodeStatus.Bootstrapping) {
+            setStatus(NodeStatus.Offline("tor died — restarting"))
+            scheduleRecovery()
+        }
+    }
+
+    private fun scheduleRecovery() {
+        val now = System.currentTimeMillis()
+        if (now - lastRecoveryAttemptAt < recoveryCooldownMillis) return
+        lastRecoveryAttemptAt = now
+        executor.execute {
+            runCatching { cleanup() }
+            val lastError = startWithRetry(attempts = 3)
+            if (lastError != null) {
+                System.err.println("[tor-node] recovery failed: ${lastError.message}")
+                setStatus(NodeStatus.Offline(lastError.message ?: lastError::class.simpleName ?: "tor died"))
             }
         }
     }
@@ -75,6 +118,7 @@ class TorNodeManager(
         val inboundSocket = ServerSocket(0) // Phase 3: the P2P messaging listener target
         inbound = inboundSocket
         val address = c.addOnionService(identity.seed, virtualPort = 80, "127.0.0.1", inboundSocket.localPort)
+        nodeWasUp = true
         setStatus(NodeStatus.Online(address, ports.socksPort))
     }
 
@@ -90,6 +134,8 @@ class TorNodeManager(
     fun clientAuthDir(): java.nio.file.Path = torProcess.clientAuthDir()
 
     fun stop() {
+        started = false
+        watchdogExecutor.shutdownNow()
         executor.execute {
             cleanup()
             setStatus(NodeStatus.Offline("stopped"))

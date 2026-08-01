@@ -89,6 +89,8 @@ class P2pMessageServiceTest {
             { Identity(seedA, Instant.now()) },
             socketFactory = socketFactory,
             rateLimitPerMinute = rateLimit,
+            retryScanMillis = 100,
+            retryBackoffBaseMillis = 100,
         ).also { if (listener != null) it.startListener() }
 
     private fun contactFor(book: ContactBook): Contact {
@@ -126,14 +128,42 @@ class P2pMessageServiceTest {
     }
 
     @Test
-    fun `undeliverable message is marked failed`() {
+    fun `undeliverable message stays queued instead of failing`() {
         val book = ContactBook()
         val contact = contactFor(book)
         val svc = service(book) // default factory hits a closed loopback port
-        val result = svc.send(contact.id, "to nobody")
-        assertTrue(result is OpResult.Success)
-        await { svc.messagesFor(contact.id).single().status == MessageStatus.FAILED }
-        assertEquals(MessageStatus.FAILED, svc.messagesFor(contact.id).single().status)
+        svc.send(contact.id, "to nobody")
+        // Connectivity problems never fail the message — the outbox keeps it queued for retry.
+        await { svc.messagesFor(contact.id).single().status == MessageStatus.SENT }
+        Thread.sleep(300)
+        assertEquals(MessageStatus.SENT, svc.messagesFor(contact.id).single().status)
+    }
+
+    @Test
+    fun `offline message is delivered once the peer comes back`() {
+        val book = ContactBook()
+        val contact = contactFor(book)
+        val peer = FakePeer(keysB, addressB).also { it.start() }
+        try {
+            var peerOnline = false
+            val factory: (Int, String, Int) -> Socket = { _, _, _ ->
+                if (peerOnline) {
+                    Socket(InetAddress.getLoopbackAddress(), peer.server.localPort)
+                } else {
+                    Socket(InetAddress.getLoopbackAddress(), 1)
+                }
+            }
+            val svc = service(book, socketFactory = factory)
+            svc.send(contact.id, "when you are back")
+            // While the peer is offline the message is queued, not failed.
+            await { svc.messagesFor(contact.id).single().status == MessageStatus.SENT }
+            peerOnline = true
+            // The next outbox scan delivers it and the ACK flips the status.
+            await { svc.messagesFor(contact.id).single().status == MessageStatus.DELIVERED }
+            assertTrue(peer.received.contains("when you are back"))
+        } finally {
+            peer.close()
+        }
     }
 
     @Test

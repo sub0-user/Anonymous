@@ -65,6 +65,12 @@ class ChatViewModel(
 
     fun deleteContact(): Boolean = contactService.deleteContact(contact.id)
 
+    /** Clears this conversation's history from memory and from at-rest storage. */
+    fun clearHistory() {
+        messageService.clearHistory(contact.id)
+        syncMessages()
+    }
+
     private fun updateSubtitle() {
         val online = nodeStatusSource.status() as? NodeStatus.Online
         val peerKey = contactService.peerPublicKeyOf(contact.id)

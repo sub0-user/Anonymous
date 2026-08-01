@@ -26,6 +26,7 @@
                 <Label text="%room.invite.expiry.days" styleClass="muted-text"/>
             </HBox>
             <Label fx:id="inviteLabel" styleClass="mono status-text" wrapText="true"/>
+            <Label fx:id="busyLabel" text="%rooms.creating" styleClass="status-text" visible="false" managed="false"/>
             <Label fx:id="feedbackLabel" styleClass="error-text" wrapText="true"/>
         </VBox>
     </content>

@@ -29,4 +29,10 @@
         <Label text="%rules.verify" styleClass="muted-text" wrapText="true"/>
         <Label text="%rules.rooms" styleClass="muted-text" wrapText="true"/>
     </VBox>
+
+    <VBox spacing="6.0" styleClass="settings-box" maxWidth="Infinity">
+        <Label text="%settings.support" styleClass="label-caption"/>
+        <Label text="%settings.support.btc" styleClass="mono" wrapText="true"/>
+        <Label text="%settings.support.hint" styleClass="muted-text" wrapText="true"/>
+    </VBox>
 </VBox>

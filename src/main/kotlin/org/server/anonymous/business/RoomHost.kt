@@ -31,6 +31,7 @@ class RoomHost(
 ) {
     private val staticKeys: X25519KeyPair by lazy { IdentityKeys.x25519KeyPairFromSeed(identity().seed) }
     private var listener: ServerSocket? = null
+    private var listening = false
     private val listenerExecutor =
         Executors.newSingleThreadExecutor { r -> Thread(r, "room-listen").apply { isDaemon = true } }
 
@@ -49,6 +50,7 @@ class RoomHost(
     }
 
     fun stop() {
+        listening = false
         listenerExecutor.shutdownNow()
         runCatching { listener?.close() }
         for (record in store.loadAll().filter { it.isFounder }) {
@@ -506,6 +508,8 @@ class RoomHost(
 
     @Suppress("TooGenericExceptionCaught", "SwallowedException") // accept fails during shutdown — retry
     private fun startListening() {
+        if (listening) return // the node watchdog may re-trigger start() after a tor restart
+        listening = true
         listenerExecutor.execute {
             while (!Thread.currentThread().isInterrupted) {
                 val socket =

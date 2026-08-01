@@ -19,6 +19,8 @@
                         styleClass="ghost-button" mnemonicParsing="false"/>
                 <Button fx:id="membersButton" text="%room.members" onAction="#onMembersClicked"
                         styleClass="ghost-button" mnemonicParsing="false"/>
+                <Button fx:id="clearHistoryButton" text="%chat.clear_history" onAction="#onClearHistoryClicked"
+                        styleClass="ghost-button" mnemonicParsing="false"/>
             </HBox>
             <Label fx:id="feedbackLabel" styleClass="error-text"/>
         </VBox>

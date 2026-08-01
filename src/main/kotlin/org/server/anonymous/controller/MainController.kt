@@ -36,7 +36,13 @@ class MainController(
     private val chatListViewModel = ChatListViewModel(appGraph.contactService)
     private val roomsListViewModel = RoomsListViewModel(appGraph.roomMessenger)
     private val requestsViewModel = RequestsViewModel(appGraph.contactService)
-    private val identityViewModel = IdentityViewModel(appGraph.torNodeManager, appGraph.identityService)
+    private val identityViewModel =
+        IdentityViewModel(
+            appGraph.torNodeManager,
+            appGraph.identityService,
+            appGraph.contactService,
+            appGraph.roomStore,
+        )
     private val settingsViewModel = SettingsViewModel(appGraph.torNodeManager)
     private var chatViewModel: ChatViewModel? = null
 
@@ -95,10 +101,15 @@ class MainController(
         dialog.title = bundle.getString("rooms.new")
         val createType = ButtonType(bundle.getString("dialog.create"), ButtonBar.ButtonData.OK_DONE)
         dialog.dialogPane.buttonTypes.add(createType)
-        dialog.dialogPane.lookupButton(createType).addEventFilter(ActionEvent.ACTION) { event ->
-            viewModel.create()
-            if (viewModel.result.get() !is OpResult.Success) {
-                event.consume()
+        val createButton = dialog.dialogPane.lookupButton(createType)
+        createButton.disableProperty().bind(viewModel.busy)
+        createButton.addEventFilter(ActionEvent.ACTION) { event ->
+            event.consume() // publishing the room can take a minute — close only on success
+            viewModel.createAsync {
+                if (viewModel.result.get() is OpResult.Success) {
+                    dialog.setResult((viewModel.result.get() as OpResult.Success).value)
+                    dialog.hide()
+                }
             }
         }
         dialog.setResultConverter { _ -> (viewModel.result.get() as? OpResult.Success)?.value }
