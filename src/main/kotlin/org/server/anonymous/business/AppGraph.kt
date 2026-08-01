@@ -10,7 +10,8 @@ import java.nio.file.Path
  * share the room store, the outbound Tor sender, and the connected Tor control client.
  */
 class AppGraph {
-    val contactService: ContactService = ContactBook()
+    /** Contacts persist to one 0600 properties file (Phase A1 pattern). */
+    val contactService: ContactService by lazy { ContactBook(userData.resolve("contacts.properties")) }
 
     private val userData = Path.of(System.getProperty("user.home"), ".anonymous")
     val identityService = IdentityService(userData.resolve("identity"))
