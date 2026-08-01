@@ -42,22 +42,42 @@ object RoomControls {
         return ControlFrame(op, roomId, body.copyOfRange(1 + RoomEnvelope.ROOM_ID_LENGTH, body.size))
     }
 
-    // JOIN — private rooms carry an empty payload (the Tor client-auth layer already gated
-    // the connection); public rooms carry the entry key.
+    // JOIN — always carries the proposed display name, plus the entry key for public rooms
+    // (private rooms are already gated by Tor client auth): [nameLen:1][name][entryKeyLen:1][entryKey].
 
-    fun encodeJoin(entryKey: String): ByteArray {
-        val key = entryKey.toByteArray(Charsets.UTF_8)
-        check(key.size <= 255) { "entry key too long" }
-        return byteArrayOf(key.size.toByte()) + key
+    data class JoinRequest(
+        val name: String,
+        val entryKey: String?,
+    )
+
+    fun encodeJoin(
+        name: String,
+        entryKey: String?,
+    ): ByteArray {
+        val nameBytes = name.toByteArray(Charsets.UTF_8)
+        check(nameBytes.size in 1..255) { "name length out of range" }
+        val key = entryKey?.toByteArray(Charsets.UTF_8)
+        if (key != null) check(key.size <= 255) { "entry key too long" }
+        return byteArrayOf(nameBytes.size.toByte()) +
+            nameBytes +
+            byteArrayOf((key?.size ?: 0).toByte()) +
+            (key ?: ByteArray(0))
     }
 
-    /** The presented entry key, or null for a private-room JOIN (empty payload). */
-    fun decodeJoin(payload: ByteArray): String? {
-        if (payload.isEmpty()) return null
-        check(payload.size >= 1) { "join payload too short" }
-        val length = payload[0].toInt() and 0xFF
-        check(payload.size == 1 + length) { "malformed join payload" }
-        return payload.copyOfRange(1, payload.size).toString(Charsets.UTF_8)
+    fun decodeJoin(payload: ByteArray): JoinRequest {
+        check(payload.size >= 2) { "join payload too short" }
+        val nameLen = payload[0].toInt() and 0xFF
+        check(nameLen in 1..255 && 1 + nameLen < payload.size) { "malformed join name" }
+        val name = payload.copyOfRange(1, 1 + nameLen).toString(Charsets.UTF_8)
+        val entryKeyLen = payload[1 + nameLen].toInt() and 0xFF
+        check(payload.size == 2 + nameLen + entryKeyLen) { "malformed join payload" }
+        val entryKey =
+            if (entryKeyLen == 0) {
+                null
+            } else {
+                payload.copyOfRange(2 + nameLen, payload.size).toString(Charsets.UTF_8)
+            }
+        return JoinRequest(name, entryKey)
     }
 
     // MEMBER_LIST — the authoritative name map: [count:1] then [pub:32][nameLen:1][name].

@@ -47,6 +47,17 @@ class TorNodeManagerTest {
             return "a".repeat(56) + ".onion"
         }
 
+        override fun addOnionServiceWithClientAuth(
+            seed: ByteArray,
+            virtualPort: Int,
+            targetHost: String,
+            targetPort: Int,
+            clientAuthBlobs: List<String>,
+        ): String {
+            addedSeeds += seed
+            return "a".repeat(56) + ".onion"
+        }
+
         override fun deleteOnionService(address: String) {
             deleted = true
         }

@@ -13,7 +13,11 @@ import java.util.Base64
  * Minimal Tor control-protocol client (see guide/dev/tor-control.md).
  * LF-terminated lines; multi-line replies end with "250 OK"; "5xx" lines are errors;
  * "650 " lines are async events and are skipped.
+ *
+ * @Suppress TooManyFunctions: one thin client over a fixed command set; splitting it
+ * would scatter the connection lifecycle.
  */
+@Suppress("TooManyFunctions")
 class ControlProtocolClient : TorControl {
     private var socket: Socket? = null
     private var reader: BufferedReader? = null
@@ -52,9 +56,27 @@ class ControlProtocolClient : TorControl {
         virtualPort: Int,
         targetHost: String,
         targetPort: Int,
+    ): String = addOnion(seed, virtualPort, targetHost, targetPort, emptyList())
+
+    override fun addOnionServiceWithClientAuth(
+        seed: ByteArray,
+        virtualPort: Int,
+        targetHost: String,
+        targetPort: Int,
+        clientAuthBlobs: List<String>,
+    ): String = addOnion(seed, virtualPort, targetHost, targetPort, clientAuthBlobs)
+
+    private fun addOnion(
+        seed: ByteArray,
+        virtualPort: Int,
+        targetHost: String,
+        targetPort: Int,
+        clientAuthBlobs: List<String>,
     ): String {
         val key = Base64.getEncoder().encodeToString(torKeyBlob(seed))
-        val reply = sendCommand("ADD_ONION ED25519-V3:$key Port=$virtualPort,$targetHost:$targetPort")
+        val auth = clientAuthBlobs.joinToString(" ") { "ClientAuth=$it" }
+        val command = "ADD_ONION ED25519-V3:$key Port=$virtualPort,$targetHost:$targetPort $auth".trim()
+        val reply = sendCommand(command)
         val serviceId =
             Regex("ServiceID=([a-z2-7]{56})").find(reply)?.groupValues?.get(1)
                 ?: error("ADD_ONION returned no ServiceID: $reply")

@@ -26,6 +26,8 @@ class RoomStoreTest {
                 status = MemberStatus.INVITED,
                 clientAuthPrivate = seed(21),
                 wrappedRoomKey = ByteArray(28) { 22 },
+                address = "b".repeat(56) + ".onion",
+                inviteExpiryEpochSeconds = 1_752_000_000L,
             ),
         )
 
@@ -146,6 +148,8 @@ class RoomStoreTest {
             } else {
                 assertArrayEquals(a.wrappedRoomKey, b.wrappedRoomKey)
             }
+            assertEquals(a.address, b.address)
+            assertEquals(a.inviteExpiryEpochSeconds, b.inviteExpiryEpochSeconds)
         }
     }
 }

@@ -261,13 +261,8 @@ class P2pMessageService(
     private fun nowLabel(): String = LocalTime.now().format(timeFormat)
 
     private companion object {
-        // First onion connection on a fresh circuit can take a while — be generous.
-        const val CONNECT_TIMEOUT_MS = 90_000
-
         /** Default transport: through our own Tor node's SOCKS5 proxy to the onion service. */
-        val defaultSocksSocket: (Int, String, Int) -> Socket = { socksPort, host, port ->
-            Socks5.connect(socksPort, host, port, CONNECT_TIMEOUT_MS)
-        }
+        val defaultSocksSocket: (Int, String, Int) -> Socket = TorSocket.factory
     }
 }
 

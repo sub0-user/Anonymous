@@ -68,6 +68,12 @@ class IdentityKeysTest {
     }
 
     @Test
+    fun `public key derives from the clamped scalar`() {
+        val pair = IdentityKeys.x25519KeyPairFromSeed(seedA)
+        assertArrayEquals(pair.publicKey, IdentityKeys.x25519PublicKeyFromScalar(pair.privateKey))
+    }
+
+    @Test
     fun `derived keys are not all zero and look random`() {
         val a = IdentityKeys.x25519KeyPairFromSeed(seedA)
         assertTrue(a.privateKey.any { it.toInt() != 0 })

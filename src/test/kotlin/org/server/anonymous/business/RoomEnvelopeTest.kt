@@ -93,9 +93,13 @@ class RoomEnvelopeTest {
     }
 
     @Test
-    fun `join payload encodes the entry key`() {
+    fun `join payload encodes name and entry key`() {
         val key = EntryKey.generate()
-        assertEquals(key, RoomControls.decodeJoin(RoomControls.encodeJoin(key)))
-        assertEquals(null, RoomControls.decodeJoin(ByteArray(0)))
+        val private = RoomControls.decodeJoin(RoomControls.encodeJoin("neo", null))
+        assertEquals("neo", private.name)
+        assertEquals(null, private.entryKey)
+        val public = RoomControls.decodeJoin(RoomControls.encodeJoin("neo", key))
+        assertEquals("neo", public.name)
+        assertEquals(key, public.entryKey)
     }
 }

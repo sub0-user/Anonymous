@@ -51,6 +51,10 @@ class RoomStore(
                     setProperty("member.$index.status", member.status.name)
                     member.clientAuthPrivate?.let { setProperty("member.$index.authPriv", b64(it)) }
                     member.wrappedRoomKey?.let { setProperty("member.$index.wrappedKey", b64(it)) }
+                    member.address?.let { setProperty("member.$index.address", it) }
+                    member.inviteExpiryEpochSeconds?.let {
+                        setProperty("member.$index.inviteExpiry", it.toString())
+                    }
                 }
             }
         val file = fileFor(record.id)
@@ -78,6 +82,8 @@ class RoomStore(
                     status = MemberStatus.valueOf(props.required("member.$index.status")),
                     clientAuthPrivate = props.getProperty("member.$index.authPriv")?.let(::decode),
                     wrappedRoomKey = props.getProperty("member.$index.wrappedKey")?.let(::decode),
+                    address = props.getProperty("member.$index.address"),
+                    inviteExpiryEpochSeconds = props.getProperty("member.$index.inviteExpiry")?.toLong(),
                 )
             index++
         }
