@@ -11,6 +11,9 @@ interface TorProcess {
 
     fun cookieFile(): Path
 
+    /** True while the spawned tor is alive; a tor that dies mid-startup is the classic stale-lock symptom. */
+    fun isRunning(): Boolean
+
     fun stop()
 }
 
@@ -32,9 +35,11 @@ class TorProcessManager(
     private var ports: TorPorts? = null
 
     override fun start(): TorPorts {
+        if (isRunning()) return ports!!
         Files.createDirectories(dataDir)
         val root = dataDir.resolve("tor")
         torRoot = root
+        TorLockGuard(dataDir).clearStaleLock()
         val binary = extractAndResolveBinary(root)
         val controlPort = freePort()
         val socksPort = freePort()
@@ -68,7 +73,7 @@ class TorProcessManager(
         return root.resolve("data/control_auth_cookie")
     }
 
-    fun isRunning(): Boolean = process?.isAlive == true
+    override fun isRunning(): Boolean = process?.isAlive == true
 
     override fun stop() {
         process?.let { p ->
