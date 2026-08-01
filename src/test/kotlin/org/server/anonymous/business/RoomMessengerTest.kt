@@ -209,6 +209,55 @@ class RoomMessengerTest {
     }
 
     @Test
+    fun `undelivered fan-out is retried until the member accepts`() {
+        val store = RoomStore(newDir())
+        val alice = IdentityKeys.x25519KeyPairFromSeed(ByteArray(32) { 21 })
+        store.save(
+            memberRecord(
+                members =
+                    listOf(
+                        RoomMember(myKeys.publicKey, "me"),
+                        RoomMember(alice.publicKey, "alice", address = "b".repeat(56) + ".onion"),
+                    ),
+            ),
+        )
+        var accept = false
+        var attempts = 0
+        var delivered = false
+        val messenger =
+            RoomMessenger(
+                store,
+                { identity },
+                { _, _, _, _ ->
+                    attempts++
+                    if (accept) {
+                        delivered = true
+                        true
+                    } else {
+                        false
+                    }
+                },
+                retryScanMillis = 50,
+                retryBackoffBaseMillis = 50,
+            )
+        try {
+            val first = messenger.sendMessage(roomId, "to an offline member")
+            assertTrue(first is OpResult.Success)
+            assertEquals(0, (first as OpResult.Success).value) // nobody accepted on the first pass
+            accept = true
+            // The outbox scan keeps retrying until the member accepts.
+            val deadline = System.currentTimeMillis() + 5_000
+            while (!delivered && System.currentTimeMillis() < deadline) {
+                Thread.sleep(20)
+            }
+            assertTrue(delivered, "fan-out retry never delivered")
+            assertTrue(attempts >= 2)
+        } finally {
+            messenger.stop()
+        }
+    }
+
+    @Test
     fun `inbound room message is decrypted and stored`() {
         val fx = fixture()
         val alice = IdentityKeys.x25519KeyPairFromSeed(ByteArray(32) { 21 })

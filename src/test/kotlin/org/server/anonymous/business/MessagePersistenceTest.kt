@@ -38,7 +38,8 @@ class MessagePersistenceTest {
 
         val first = p2pService(book, journal(file))
         first.send(contact.id, "survive the restart")
-        await { first.messagesFor(contact.id).single().status == MessageStatus.FAILED }
+        // Connectivity failure leaves the message queued (SENT) — the outbox owns delivery.
+        await { first.messagesFor(contact.id).single().status == MessageStatus.SENT }
         // The status append lands right after the in-memory update — wait for it on disk.
         await { journal(file).load().any { it.second.body == "survive the restart" } }
         first.stop()
@@ -48,7 +49,7 @@ class MessagePersistenceTest {
         assertEquals(1, restored.size)
         assertEquals("survive the restart", restored.single().body)
         assertEquals(MessageDirection.OUT, restored.single().direction)
-        assertEquals(MessageStatus.FAILED, restored.single().status)
+        assertEquals(MessageStatus.SENT, restored.single().status)
         second.stop()
     }
 

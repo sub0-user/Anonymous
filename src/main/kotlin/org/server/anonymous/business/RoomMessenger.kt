@@ -6,7 +6,10 @@ import org.server.anonymous.business.model.RoomRecord
 import org.server.anonymous.business.model.RoomType
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import java.util.Base64
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 /**
  * The member side of rooms (Phase 4): accepts invites, joins room services, fans out room
@@ -18,7 +21,7 @@ import java.util.concurrent.CopyOnWriteArrayList
  * set; splitting it would scatter the room state transitions, and the early returns are
  * validation guards on every operation.
  */
-@Suppress("TooManyFunctions", "ReturnCount")
+@Suppress("TooManyFunctions", "ReturnCount", "LongParameterList")
 class RoomMessenger(
     private val store: RoomStore,
     private val identity: () -> Identity,
@@ -26,12 +29,21 @@ class RoomMessenger(
     private val clientAuthInstaller: OnionClientAuth? = null,
     /** Encrypted at-rest history (Phase A1); null keeps the in-memory-only behavior for tests. */
     private val roomHistory: MessageJournal<RoomMessageItem>? = null,
+    /** How often undelivered room fan-out is retried (Phase A2); short in tests, 30s in the app. */
+    private val retryScanMillis: Long = 30_000,
+    /** Base of the fan-out retry backoff; short in tests. */
+    private val retryBackoffBaseMillis: Long = 60_000,
 ) {
     private val keys: X25519KeyPair by lazy { IdentityKeys.x25519KeyPairFromSeed(identity().seed) }
     private val messages = mutableMapOf<Long, MutableList<RoomMessageItem>>()
     private val listeners = CopyOnWriteArrayList<(RoomMessageItem) -> Unit>()
     private val timeFormat = DateTimeFormatter.ofPattern("HH:mm")
     private var nextId = 1L
+
+    /** Fan-out deliveries still waiting on a member; key = roomId:messageId:memberKey. */
+    private val pending = mutableMapOf<String, PendingRoomDelivery>()
+    private val retryExecutor =
+        Executors.newSingleThreadScheduledExecutor { r -> Thread(r, "room-retry").apply { isDaemon = true } }
 
     init {
         // Restore persisted history; a later record for the same id (a status change) wins.
@@ -41,6 +53,16 @@ class RoomMessenger(
             if (index >= 0) list[index] = item else list += item
             if (item.id >= nextId) nextId = item.id + 1
         }
+        retryExecutor.scheduleWithFixedDelay(
+            { runCatching { processPendingRooms() } },
+            retryScanMillis,
+            retryScanMillis,
+            TimeUnit.MILLISECONDS,
+        )
+    }
+
+    fun stop() {
+        retryExecutor.shutdownNow()
     }
 
     fun rooms(): List<RoomRecord> = store.loadAll()
@@ -135,13 +157,30 @@ class RoomMessenger(
                         ),
                 ),
             )
-        val delivered =
-            record.members.count { member ->
+        var delivered = 0
+        for (member in record.members) {
+            val ready =
                 member.status == org.server.anonymous.business.model.MemberStatus.MEMBER &&
                     !member.publicKey.contentEquals(keys.publicKey) &&
-                    member.address != null &&
-                    sender(member.address!!, member.publicKey, WireProtocol.CONTENT_ROOM_MSG.toByte(), envelope)
+                    member.address != null
+            if (!ready) continue
+            val ok = sender(member.address!!, member.publicKey, WireProtocol.CONTENT_ROOM_MSG.toByte(), envelope)
+            if (ok) {
+                delivered++
+                synchronized(pending) { pending.remove(pendingKey(roomId, message.id, member.publicKey)) }
+            } else {
+                // The member did not accept — the outbox scan retries with backoff (Phase A2).
+                synchronized(pending) {
+                    pending[pendingKey(roomId, message.id, member.publicKey)] =
+                        PendingRoomDelivery(
+                            attempts = 0,
+                            nextRetryAtMillis = now(),
+                            envelope = envelope,
+                            keyVersion = record.keyVersion,
+                        )
+                }
             }
+        }
         return OpResult.Success(delivered)
     }
 
@@ -316,7 +355,90 @@ class RoomMessenger(
         listeners.forEach { it(message) }
     }
 
+    /**
+     * Retries fan-out deliveries that the first pass could not land. A member that left or
+     * was removed drops its entry; an envelope whose key version is stale is dropped too
+     * (the member will get the new key and newer messages instead). In-session only: after a
+     * restart, room deliveries are not re-attempted — the member side of the retry ledger is
+     * not persisted (documented v1 limitation).
+     */
+    private fun processPendingRooms() {
+        val due =
+            synchronized(pending) {
+                pending
+                    .filter { (_, p) -> p.nextRetryAtMillis <= now() }
+                    .map { (key, p) -> key to p }
+            }
+        for ((key, entry) in due) {
+            if (retryOne(key, entry)) {
+                synchronized(pending) { pending.remove(key) }
+            } else {
+                synchronized(pending) {
+                    val current = pending[key]
+                    if (current != null) {
+                        current.attempts += 1
+                        current.nextRetryAtMillis = now() + backoffMillis(current.attempts)
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * One fan-out retry. Returns true when the entry is finished — delivered, or the member
+     * left / the room is gone / the key rotated (a stale envelope must never be re-sent).
+     */
+    private fun retryOne(
+        key: String,
+        entry: PendingRoomDelivery,
+    ): Boolean {
+        val parsed = parsePendingKey(key) ?: return true
+        val (roomId, _, memberKey) = parsed
+        val record = store.loadAll().firstOrNull { it.id == roomId } ?: return true
+        if (record.keyVersion != entry.keyVersion) return true
+        val member =
+            record.members.firstOrNull {
+                it.publicKey.contentEquals(memberKey) &&
+                    it.status == org.server.anonymous.business.model.MemberStatus.MEMBER &&
+                    it.address != null
+            } ?: return true
+        return sender(member.address!!, member.publicKey, WireProtocol.CONTENT_ROOM_MSG.toByte(), entry.envelope)
+    }
+
+    private fun backoffMillis(attempt: Int): Long =
+        when {
+            attempt <= 1 -> retryBackoffBaseMillis
+            attempt == 2 -> retryBackoffBaseMillis * 5
+            attempt == 3 -> retryBackoffBaseMillis * 30
+            else -> retryBackoffBaseMillis * 60
+        }
+
+    private fun pendingKey(
+        roomId: Long,
+        messageId: Long,
+        memberKey: ByteArray,
+    ): String = "$roomId:$messageId:${Base64.getEncoder().encodeToString(memberKey)}"
+
+    private fun parsePendingKey(key: String): Triple<Long, Long, ByteArray>? {
+        val parts = key.split(":")
+        if (parts.size != 3) return null
+        val roomId = parts[0].toLongOrNull() ?: return null
+        val messageId = parts[1].toLongOrNull() ?: return null
+        val memberKey = runCatching { Base64.getDecoder().decode(parts[2]) }.getOrNull() ?: return null
+        return Triple(roomId, messageId, memberKey)
+    }
+
+    private fun now(): Long = System.currentTimeMillis()
+
     private fun nextId(): Long = synchronized(messages) { nextId++ }
 
     private fun nowLabel(): String = LocalTime.now().format(timeFormat)
 }
+
+/** One undelivered fan-out: the encrypted envelope to retry and how far the backoff has climbed. */
+private data class PendingRoomDelivery(
+    var attempts: Int,
+    var nextRetryAtMillis: Long,
+    val envelope: ByteArray,
+    val keyVersion: Int,
+)
