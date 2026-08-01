@@ -20,6 +20,8 @@ class NewRoomDialogController(
 
     @FXML private lateinit var feedbackLabel: Label
 
+    @FXML private lateinit var busyLabel: Label
+
     @Suppress("UnusedPrivateMember") // invoked reflectively by FXML
     @FXML
     private fun initialize() {
@@ -32,5 +34,7 @@ class NewRoomDialogController(
             if (selected) viewModel.type.set(RoomType.PUBLIC)
         }
         feedbackLabel.textProperty().bind(viewModel.feedback)
+        busyLabel.visibleProperty().bind(viewModel.busy)
+        busyLabel.managedProperty().bind(viewModel.busy)
     }
 }

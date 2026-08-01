@@ -68,9 +68,16 @@ class RoomChatController(
         val createType = ButtonType(bundle.getString("dialog.create"), ButtonBar.ButtonData.OK_DONE)
         dialog.dialogPane.buttonTypes.add(createType)
         val controller = loader.getController<InviteDialogController>()
-        dialog.dialogPane.lookupButton(createType).addEventFilter(ActionEvent.ACTION) { event ->
-            controller.create()
-            if (controller.createdInvite == null) event.consume()
+        val createButton = dialog.dialogPane.lookupButton(createType)
+        createButton.disableProperty().bind(controller.busy)
+        createButton.addEventFilter(ActionEvent.ACTION) { event ->
+            event.consume() // publishing the invite can take a minute — close only when it is done
+            controller.createAsync {
+                if (controller.createdInvite != null) {
+                    dialog.setResult(controller.createdInvite)
+                    dialog.hide()
+                }
+            }
         }
         dialog.setResultConverter { controller.createdInvite }
         dialog.showAndWait()

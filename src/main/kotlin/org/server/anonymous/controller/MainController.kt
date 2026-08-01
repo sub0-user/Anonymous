@@ -101,10 +101,15 @@ class MainController(
         dialog.title = bundle.getString("rooms.new")
         val createType = ButtonType(bundle.getString("dialog.create"), ButtonBar.ButtonData.OK_DONE)
         dialog.dialogPane.buttonTypes.add(createType)
-        dialog.dialogPane.lookupButton(createType).addEventFilter(ActionEvent.ACTION) { event ->
-            viewModel.create()
-            if (viewModel.result.get() !is OpResult.Success) {
-                event.consume()
+        val createButton = dialog.dialogPane.lookupButton(createType)
+        createButton.disableProperty().bind(viewModel.busy)
+        createButton.addEventFilter(ActionEvent.ACTION) { event ->
+            event.consume() // publishing the room can take a minute — close only on success
+            viewModel.createAsync {
+                if (viewModel.result.get() is OpResult.Success) {
+                    dialog.setResult((viewModel.result.get() as OpResult.Success).value)
+                    dialog.hide()
+                }
             }
         }
         dialog.setResultConverter { _ -> (viewModel.result.get() as? OpResult.Success)?.value }

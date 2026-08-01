@@ -24,6 +24,7 @@
                 <RadioButton text="%room.new.private" fx:id="privateChoice" selected="true" toggleGroup="$typeGroup"/>
                 <RadioButton text="%room.new.public" fx:id="publicChoice" toggleGroup="$typeGroup"/>
             </HBox>
+            <Label fx:id="busyLabel" text="%rooms.creating" styleClass="status-text" visible="false" managed="false"/>
             <Label fx:id="feedbackLabel" styleClass="error-text" wrapText="true"/>
         </VBox>
     </content>
