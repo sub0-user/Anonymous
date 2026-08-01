@@ -14,6 +14,11 @@ import java.util.Base64
  * LF-terminated lines; multi-line replies end with "250 OK"; "5xx" lines are errors;
  * "650 " lines are async events and are skipped.
  *
+ * Thread-safety (Phase B2): the app shares ONE connected client between the node manager
+ * (watchdog/startup), RoomHost (room services) and OnionClientAuth (SIGNAL HUP), so every
+ * socket-touching method is @Synchronized — two threads can never interleave a command on
+ * the same connection.
+ *
  * @Suppress TooManyFunctions: one thin client over a fixed command set; splitting it
  * would scatter the connection lifecycle.
  */
@@ -23,6 +28,7 @@ class ControlProtocolClient : TorControl {
     private var reader: BufferedReader? = null
     private var writer: BufferedWriter? = null
 
+    @Synchronized
     override fun connect(
         host: String,
         port: Int,
@@ -39,6 +45,7 @@ class ControlProtocolClient : TorControl {
         sendCommand("PROTOCOLINFO 1")
     }
 
+    @Synchronized
     override fun authenticate(cookie: ByteArray) {
         val hex = cookie.joinToString("") { "%02x".format(it) }
         sendCommand("AUTHENTICATE $hex")
@@ -104,6 +111,7 @@ class ControlProtocolClient : TorControl {
         sendCommand("SIGNAL HUP")
     }
 
+    @Synchronized
     override fun close() {
         runCatching {
             writer?.write("QUIT\n")
@@ -115,6 +123,7 @@ class ControlProtocolClient : TorControl {
         writer = null
     }
 
+    @Synchronized
     private fun sendCommand(command: String): String {
         val w = checkNotNull(writer) { "TorControl not connected" }
         w.write(command + "\n")
