@@ -3,18 +3,17 @@ package org.server.anonymous.business
 import org.server.anonymous.business.model.Contact
 import org.server.anonymous.business.model.ContactRequest
 
-/** Mock contact store for UI tests (seeded). The app uses [ContactBook]; persistence is Phase 4. */
+/**
+ * The real contact store: starts empty, tracks requests, blocks and peer keys in memory
+ * (persistence arrives in Phase 4). The seeded InMemoryContactService remains for UI tests.
+ */
 @Suppress("TooManyFunctions") // same surface as ContactService, by contract
-class InMemoryContactService : ContactService {
-    private val contacts =
-        mutableListOf(
-            Contact(1, "raven", OnionAddress(mockAddress(1)), "2m ago"),
-            Contact(2, "ghost", OnionAddress(mockAddress(2)), "1h ago"),
-            Contact(3, "moth", OnionAddress(mockAddress(3)), "yesterday"),
-        )
+class ContactBook : ContactService {
+    private val contacts = mutableListOf<Contact>()
     private val requests = mutableListOf<ContactRequest>()
     private val blocked = mutableSetOf<String>()
     private val peerKeys = mutableMapOf<Long, ByteArray>()
+    private var nextId = 1L
 
     override fun listContacts(): List<Contact> = contacts.toList()
 
@@ -33,7 +32,7 @@ class InMemoryContactService : ContactService {
                 else -> null
             }
         if (failure != null) return failure
-        val contact = Contact(nextId(), trimmedAlias, OnionAddress(trimmedAddress), null)
+        val contact = Contact(nextId++, trimmedAlias, OnionAddress(trimmedAddress))
         contacts += contact
         return OpResult.Success(contact)
     }
@@ -60,7 +59,7 @@ class InMemoryContactService : ContactService {
         preview: String,
     ) {
         if (contacts.any { it.address.value == address } || requests.any { it.address.value == address }) return
-        requests += ContactRequest(nextId(), OnionAddress(address), preview, "now")
+        requests += ContactRequest(nextId++, OnionAddress(address), preview, "now")
     }
 
     override fun acceptRequest(address: String): OpResult<Contact> {
@@ -82,14 +81,5 @@ class InMemoryContactService : ContactService {
         key: ByteArray,
     ) {
         peerKeys[contactId] = key
-    }
-
-    private fun nextId(): Long = (contacts.maxOfOrNull { it.id } ?: 0L) + 1
-
-    private fun mockAddress(seed: Int): String {
-        val alphabet = "abcdefghijklmnopqrstuvwxyz234567"
-        return buildString {
-            repeat(56) { i -> append(alphabet[(seed + i) % alphabet.length]) }
-        } + ".onion"
     }
 }

@@ -28,6 +28,13 @@ class IdentityService(
 
     fun getOrCreate(): Identity = if (Files.exists(propertiesFile)) load() else create()
 
+    /** Restores an identity from a backup (used by identity import). Overwrites the current seed. */
+    fun replace(seed: ByteArray): Identity {
+        val identity = Identity(seed, Instant.now())
+        persist(identity)
+        return identity
+    }
+
     private fun create(): Identity {
         val keyPair = KeyPairGenerator.getInstance("Ed25519").generateKeyPair()
         val identity = Identity(extractSeed(keyPair), Instant.now())

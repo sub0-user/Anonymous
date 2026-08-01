@@ -15,7 +15,7 @@
         <VBox styleClass="sidebar" minWidth="260.0" prefWidth="280.0" maxWidth="320.0">
             <HBox styleClass="sidebar-header" alignment="CENTER_LEFT" spacing="8.0">
                 <ImageView fitHeight="24.0" preserveRatio="true">
-                    <image><Image url="@logo/logo.png"/></image>
+                    <image><Image url="@logo/logo-icon.png"/></image>
                 </ImageView>
                 <Label text="%app.name" styleClass="app-title"/>
             </HBox>
@@ -23,6 +23,8 @@
             <ListView fx:id="chatListView" styleClass="chat-list" VBox.vgrow="ALWAYS"/>
             <Button text="%add.contact" onAction="#onAddContactClicked"
                     styleClass="accent-button" maxWidth="Infinity" mnemonicParsing="false"/>
+            <Button text="%nav.requests" onAction="#onShowRequestsClicked"
+                    styleClass="ghost-button" maxWidth="Infinity" mnemonicParsing="false"/>
             <HBox spacing="8.0">
                 <Button text="%nav.my_number" onAction="#onShowIdentityClicked"
                         styleClass="ghost-button" HBox.hgrow="ALWAYS" maxWidth="Infinity" mnemonicParsing="false"/>

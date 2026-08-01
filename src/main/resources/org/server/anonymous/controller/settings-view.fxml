@@ -17,4 +17,16 @@
         <Label text="%settings.version" styleClass="label-caption"/>
         <Label fx:id="versionLabel" styleClass="muted-text"/>
     </VBox>
+
+    <VBox spacing="6.0" styleClass="settings-box" maxWidth="Infinity">
+        <Label text="%settings.rules" styleClass="label-caption"/>
+        <Label text="%settings.rules.hint" styleClass="muted-text"/>
+        <Label text="%rules.number" styleClass="muted-text" wrapText="true"/>
+        <Label text="%rules.encryption" styleClass="muted-text" wrapText="true"/>
+        <Label text="%rules.no_server" styleClass="muted-text" wrapText="true"/>
+        <Label text="%rules.no_files" styleClass="muted-text" wrapText="true"/>
+        <Label text="%rules.requests" styleClass="muted-text" wrapText="true"/>
+        <Label text="%rules.verify" styleClass="muted-text" wrapText="true"/>
+        <Label text="%rules.rooms" styleClass="muted-text" wrapText="true"/>
+    </VBox>
 </VBox>

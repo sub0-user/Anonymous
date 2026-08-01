@@ -9,4 +9,9 @@ interface MessageService {
         contactId: Long,
         body: String,
     ): OpResult<MessageItem>
+
+    /** Notified for every new message and every status change (on background threads). */
+    fun addMessageListener(listener: (MessageItem) -> Unit) = Unit
+
+    fun stop() = Unit
 }

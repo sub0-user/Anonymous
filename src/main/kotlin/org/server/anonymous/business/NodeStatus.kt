@@ -12,6 +12,7 @@ sealed interface NodeStatus {
 
     data class Online(
         val address: String,
+        val socksPort: Int,
     ) : NodeStatus
 }
 

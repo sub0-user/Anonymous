@@ -40,7 +40,12 @@ class MessageBubbleCell : ListCell<MessageItem>() {
             when (item.direction) {
                 MessageDirection.IN -> item.sentAtLabel
                 MessageDirection.OUT ->
-                    item.sentAtLabel + "  " + if (item.status == MessageStatus.DELIVERED) "✓✓" else "✓"
+                    item.sentAtLabel + "  " +
+                        when (item.status) {
+                            MessageStatus.DELIVERED -> "✓✓"
+                            MessageStatus.SENT -> "✓"
+                            MessageStatus.FAILED -> "✗"
+                        }
             }
         bubble.styleClass.removeAll("bubble-out", "bubble-in")
         bubble.styleClass.add(if (item.direction == MessageDirection.OUT) "bubble-out" else "bubble-in")
