@@ -20,7 +20,22 @@ interface TorControl {
         targetPort: Int,
     ): String
 
+    /**
+     * Same, restricted to Tor v3 client-auth keys ("invite mode"): only Tors holding one of
+     * the given private halves can reach the service. Blobs come from [ClientAuthBlob].
+     */
+    fun addOnionServiceWithClientAuth(
+        seed: ByteArray,
+        virtualPort: Int,
+        targetHost: String,
+        targetPort: Int,
+        clientAuthBlobs: List<String>,
+    ): String
+
     fun deleteOnionService(address: String)
+
+    /** Reloads Tor's configuration (e.g. after writing a client-auth file). */
+    fun signalHup()
 
     fun close()
 }

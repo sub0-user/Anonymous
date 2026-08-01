@@ -51,6 +51,17 @@ object IdentityKeys {
         return secret
     }
 
+    /** The little-endian u-coordinate for an already-clamped scalar (e.g. a client-auth key). */
+    fun x25519PublicKeyFromScalar(privateScalar: ByteArray): ByteArray {
+        val factory = KeyFactory.getInstance("XDH")
+        val privateKey = factory.generatePrivate(XECPrivateKeySpec(NamedParameterSpec.X25519, privateScalar))
+        val basePoint = factory.generatePublic(XECPublicKeySpec(NamedParameterSpec.X25519, BigInteger.valueOf(9)))
+        val agreement = KeyAgreement.getInstance("X25519")
+        agreement.init(privateKey)
+        agreement.doPhase(basePoint, true)
+        return agreement.generateSecret()
+    }
+
     private fun clampScalar(input: ByteArray): ByteArray {
         val s = input.copyOf()
         s[0] = (s[0].toInt() and 0xF8).toByte()

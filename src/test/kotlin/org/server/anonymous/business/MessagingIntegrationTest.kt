@@ -9,8 +9,6 @@ import org.server.anonymous.business.model.MessageDirection
 import org.server.anonymous.business.model.MessageStatus
 import java.net.ServerSocket
 import java.nio.file.Files
-import java.nio.file.Path
-import java.util.concurrent.TimeUnit
 
 /**
  * The Phase 3 capstone: two real Tor nodes, two identities — A sends a message to B
@@ -25,7 +23,7 @@ import java.util.concurrent.TimeUnit
 @Tag("integration")
 class MessagingIntegrationTest {
     @Test
-    @Timeout(600)
+    @Timeout(1500)
     fun `A messages B end to end over real tor`() {
         val tempA = Files.createTempDirectory("anon-msg-a")
         val tempB = Files.createTempDirectory("anon-msg-b")
@@ -42,8 +40,8 @@ class MessagingIntegrationTest {
             val inboundA = ServerSocket(0)
             val inboundB = ServerSocket(0)
             try {
-                val addressA = onlineAddress(processA, portsA, identityA, inboundA)
-                val addressB = onlineAddress(processB, portsB, identityB, inboundB)
+                val addressA = TorTestHarness.onlineAddress(processA, portsA, identityA, inboundA)
+                val addressB = TorTestHarness.onlineAddress(processB, portsB, identityB, inboundB)
                 assertTrue(addressA != addressB)
 
                 // B listens and is ready to receive.
@@ -56,7 +54,7 @@ class MessagingIntegrationTest {
                 // directories before it is reachable. On a cold/loaded network this can take
                 // minutes — poll until B's service is actually reachable from A, then send.
                 val reachable =
-                    poll(480_000) {
+                    TorTestHarness.poll(480_000) {
                         runCatching {
                             Socks5.connect(portsA.socksPort, addressB, 80, 20_000).also { it.close() }
                         }.isSuccess
@@ -74,16 +72,16 @@ class MessagingIntegrationTest {
                 assertTrue(result is OpResult.Success)
 
                 // B receives it and A observes the ack.
-                await { serviceB.messagesFor(contactA.id).any { it.direction == MessageDirection.IN } }
+                TorTestHarness.await { serviceB.messagesFor(contactA.id).any { it.direction == MessageDirection.IN } }
                 val received = serviceB.messagesFor(contactA.id).single()
                 assertEquals("hello over tor", received.body)
                 assertEquals(MessageStatus.DELIVERED, received.status)
-                await { serviceA.messagesFor(contactB.id).single().status == MessageStatus.DELIVERED }
+                TorTestHarness.await { serviceA.messagesFor(contactB.id).single().status == MessageStatus.DELIVERED }
 
                 // And B can answer back.
                 val reply = serviceB.send(contactA.id, "got it, over tor")
                 assertTrue(reply is OpResult.Success)
-                await { serviceA.messagesFor(contactB.id).any { it.direction == MessageDirection.IN } }
+                TorTestHarness.await { serviceA.messagesFor(contactB.id).any { it.direction == MessageDirection.IN } }
                 assertEquals("got it, over tor", serviceA.messagesFor(contactB.id).last().body)
 
                 serviceA.stop()
@@ -114,103 +112,4 @@ class MessagingIntegrationTest {
             { inbound },
             { identity },
         )
-
-    /** Boots tor, waits for bootstrap and registers the onion service; returns the address. */
-    private fun onlineAddress(
-        process: TorProcessManager,
-        ports: TorProcessManager.TorPorts,
-        identity: Identity,
-        inbound: ServerSocket,
-    ): String {
-        val control = ControlProtocolClient()
-        try {
-            connectWithRetry(control, ports.controlPort)
-            val cookie = waitForCookie(process.cookieFile())
-            control.authenticate(cookie)
-            waitForBootstrap(control)
-            return addOnionWithRetry(control, identity.seed, inbound.localPort)
-        } finally {
-            control.close()
-        }
-    }
-
-    private fun connectWithRetry(
-        control: TorControl,
-        controlPort: Int,
-    ) {
-        var lastError: Throwable? = null
-        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(60)
-        while (System.nanoTime() < deadline) {
-            try {
-                control.connect("127.0.0.1", controlPort)
-                return
-            } catch (t: Throwable) {
-                lastError = t
-                Thread.sleep(1000)
-            }
-        }
-        error("could not connect to tor control port: $lastError")
-    }
-
-    private fun waitForCookie(cookieFile: Path): ByteArray {
-        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30)
-        while (System.nanoTime() < deadline) {
-            if (Files.exists(cookieFile)) return Files.readAllBytes(cookieFile)
-            Thread.sleep(500)
-        }
-        error("tor never wrote the control auth cookie")
-    }
-
-    private fun waitForBootstrap(control: TorControl) {
-        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(240)
-        while (System.nanoTime() < deadline) {
-            val progress = control.bootstrapProgress()
-            if (progress != null && progress >= 100) return
-            Thread.sleep(1000)
-        }
-        error("tor did not bootstrap within 240s")
-    }
-
-    private fun addOnionWithRetry(
-        control: TorControl,
-        seed: ByteArray,
-        targetPort: Int,
-    ): String {
-        var lastError: Throwable? = null
-        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(180)
-        while (System.nanoTime() < deadline) {
-            try {
-                return control.addOnionService(seed, virtualPort = 80, "127.0.0.1", targetPort)
-            } catch (t: Throwable) {
-                lastError = t
-                Thread.sleep(5000)
-            }
-        }
-        error("ADD_ONION never succeeded: $lastError")
-    }
-
-    /** Polls until the condition holds or the timeout passes; returns the last attempt. */
-    private fun poll(
-        timeoutMs: Long,
-        condition: () -> Boolean,
-    ): Boolean {
-        val deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMs)
-        while (System.nanoTime() < deadline) {
-            if (condition()) return true
-            Thread.sleep(500)
-        }
-        return condition()
-    }
-
-    private fun await(
-        timeoutMs: Long = 300_000,
-        condition: () -> Boolean,
-    ) {
-        val deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMs)
-        while (System.nanoTime() < deadline) {
-            if (condition()) return
-            Thread.sleep(500)
-        }
-        error("condition not met within ${timeoutMs}ms")
-    }
 }

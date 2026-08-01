@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.ButtonType?>
+<?import javafx.scene.control.DialogPane?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.RadioButton?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.ToggleGroup?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<DialogPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="org.server.anonymous.controller.NewRoomDialogController" prefWidth="420.0" styleClass="dialog-pane">
+    <content>
+        <VBox spacing="10.0">
+            <VBox spacing="4.0">
+                <Label text="%room.new.name" styleClass="label-caption"/>
+                <TextField fx:id="nameField" promptText="%room.new.name.prompt" styleClass="search-field"/>
+            </VBox>
+            <VBox spacing="4.0">
+                <Label text="%room.new.my_name" styleClass="label-caption"/>
+                <TextField fx:id="myNameField" promptText="%room.new.my_name.prompt" styleClass="search-field"/>
+            </VBox>
+            <HBox spacing="16.0">
+                <fx:define><ToggleGroup fx:id="typeGroup"/></fx:define>
+                <RadioButton text="%room.new.private" fx:id="privateChoice" selected="true" toggleGroup="$typeGroup"/>
+                <RadioButton text="%room.new.public" fx:id="publicChoice" toggleGroup="$typeGroup"/>
+            </HBox>
+            <Label fx:id="feedbackLabel" styleClass="error-text" wrapText="true"/>
+        </VBox>
+    </content>
+    <buttonTypes>
+        <ButtonType fx:constant="CANCEL"/>
+    </buttonTypes>
+</DialogPane>

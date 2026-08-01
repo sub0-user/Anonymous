@@ -1,0 +1,90 @@
+package org.server.anonymous.controller
+
+import javafx.event.ActionEvent
+import javafx.fxml.FXML
+import javafx.fxml.FXMLLoader
+import javafx.scene.control.Button
+import javafx.scene.control.ButtonBar
+import javafx.scene.control.ButtonType
+import javafx.scene.control.Dialog
+import javafx.scene.control.Label
+import javafx.scene.control.ListView
+import javafx.scene.control.TextField
+import javafx.util.Callback
+import org.server.anonymous.AnonymousApplication
+import org.server.anonymous.business.model.RoomMessageItem
+import java.util.ResourceBundle
+
+/** Room chat: header (name, type, member count), founder actions, composer, message list. */
+class RoomChatController(
+    private val viewModel: RoomChatViewModel,
+) {
+    @FXML private lateinit var titleLabel: Label
+
+    @FXML private lateinit var subtitleLabel: Label
+
+    @FXML private lateinit var messageList: ListView<RoomMessageItem>
+
+    @FXML private lateinit var draftField: TextField
+
+    @FXML private lateinit var inviteButton: Button
+
+    @FXML private lateinit var membersButton: Button
+
+    @FXML private lateinit var feedbackLabel: Label
+
+    private val bundle = ResourceBundle.getBundle("org.server.anonymous.messages")
+
+    @Suppress("UnusedPrivateMember") // invoked reflectively by FXML
+    @FXML
+    private fun initialize() {
+        titleLabel.textProperty().bind(viewModel.title)
+        subtitleLabel.textProperty().bind(viewModel.subtitle)
+        feedbackLabel.textProperty().bind(viewModel.sendFeedback)
+        messageList.items = viewModel.messages
+        messageList.setCellFactory { RoomMessageCell(viewModel::displayNameFor) }
+        draftField.textProperty().bindBidirectional(viewModel.draft)
+        inviteButton.visibleProperty().bind(viewModel.founderVisible)
+        inviteButton.managedProperty().bind(viewModel.founderVisible)
+        membersButton.visibleProperty().bind(viewModel.founderVisible)
+        membersButton.managedProperty().bind(viewModel.founderVisible)
+        messageList.scrollTo((viewModel.messages.size - 1).coerceAtLeast(0))
+    }
+
+    @FXML
+    fun onSendClicked() {
+        viewModel.send()
+        messageList.scrollTo((viewModel.messages.size - 1).coerceAtLeast(0))
+    }
+
+    @FXML
+    fun onInviteClicked() {
+        val dialog = Dialog<String>()
+        val loader = FXMLLoader(RoomChatController::class.java.getResource("invite-dialog.fxml"), bundle)
+        loader.controllerFactory = Callback { InviteDialogController(viewModel) }
+        dialog.dialogPane = loader.load()
+        dialog.dialogPane.stylesheets.add(AnonymousApplication.stylesheet())
+        dialog.title = bundle.getString("room.invite")
+        val createType = ButtonType(bundle.getString("dialog.create"), ButtonBar.ButtonData.OK_DONE)
+        dialog.dialogPane.buttonTypes.add(createType)
+        val controller = loader.getController<InviteDialogController>()
+        dialog.dialogPane.lookupButton(createType).addEventFilter(ActionEvent.ACTION) { event ->
+            controller.create()
+            if (controller.createdInvite == null) event.consume()
+        }
+        dialog.setResultConverter { controller.createdInvite }
+        dialog.showAndWait()
+    }
+
+    @FXML
+    fun onMembersClicked() {
+        val dialog = Dialog<Void>()
+        val loader = FXMLLoader(RoomChatController::class.java.getResource("members-dialog.fxml"), bundle)
+        loader.controllerFactory = Callback { MembersDialogController(viewModel) }
+        dialog.dialogPane = loader.load()
+        dialog.dialogPane.stylesheets.add(AnonymousApplication.stylesheet())
+        dialog.title = bundle.getString("room.members")
+        dialog.showAndWait()
+        viewModel.syncAfterDialog()
+    }
+}

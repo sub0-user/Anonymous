@@ -17,6 +17,8 @@ object WireProtocol {
     const val TYPE_ACK = 3
 
     const val CONTENT_TEXT = 1
+    const val CONTENT_ROOM_MSG = 2
+    const val CONTENT_ROOM_CONTROL = 3
 
     const val SESSION_NONCE_LENGTH = 32
     const val MAX_ADDRESS_LENGTH = 64
