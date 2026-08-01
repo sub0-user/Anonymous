@@ -2,7 +2,7 @@ package org.server.anonymous.business.model
 
 enum class MessageDirection { IN, OUT }
 
-enum class MessageStatus { SENT, DELIVERED }
+enum class MessageStatus { SENT, DELIVERED, FAILED }
 
 data class MessageItem(
     val id: Long,

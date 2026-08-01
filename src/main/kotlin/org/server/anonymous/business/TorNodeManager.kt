@@ -68,11 +68,15 @@ class TorNodeManager(
         val cookie = Files.readAllBytes(torProcess.cookieFile())
         c.authenticate(cookie)
         waitForBootstrap(c)
-        val inboundSocket = ServerSocket(0) // reserved target port (Phase 3 listener)
+        val inboundSocket = ServerSocket(0) // Phase 3: the P2P messaging listener target
         inbound = inboundSocket
         val address = c.addOnionService(identity.seed, virtualPort = 80, "127.0.0.1", inboundSocket.localPort)
-        setStatus(NodeStatus.Online(address))
+        setStatus(NodeStatus.Online(address, ports.socksPort))
     }
+
+    /** The socket Tor routes inbound onion connections to; null while offline. */
+    val inboundSocket: ServerSocket?
+        get() = inbound
 
     fun stop() {
         executor.execute {
