@@ -55,9 +55,18 @@ class MainController(
         chatListView.selectionModel.selectedItemProperty().addListener { _, _, selected ->
             if (selected != null) showChat(selected)
         }
+        // Re-clicking an already-selected row must re-open the chat (selection alone won't re-fire).
+        chatListView.setOnMouseClicked {
+            val selected = chatListView.selectionModel.selectedItem
+            if (selected != null) showChat(selected)
+        }
         roomsListView.items = roomsListViewModel.rooms
         roomsListView.setCellFactory { RoomCell() }
         roomsListView.selectionModel.selectedItemProperty().addListener { _, _, selected ->
+            if (selected != null) showRoom(selected)
+        }
+        roomsListView.setOnMouseClicked {
+            val selected = roomsListView.selectionModel.selectedItem
             if (selected != null) showRoom(selected)
         }
         showIdentity()

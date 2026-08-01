@@ -1,12 +1,14 @@
 package org.server.anonymous
 
 import javafx.application.Application
+import javafx.application.Platform
 import javafx.fxml.FXMLLoader
 import javafx.scene.Parent
 import javafx.scene.Scene
 import javafx.stage.Stage
 import javafx.util.Callback
 import org.server.anonymous.business.AppGraph
+import org.server.anonymous.business.NodeStatus
 import org.server.anonymous.controller.MainController
 import java.util.ResourceBundle
 
@@ -16,6 +18,18 @@ class AnonymousApplication : Application() {
     override fun start(stage: Stage) {
         instance = this
         val bundle = ResourceBundle.getBundle("org.server.anonymous.messages")
+        // The window title carries the node's onion address once online — with two instances
+        // side by side (demo/tutorial), each window is unmistakably a different identity.
+        appGraph.torNodeManager.addStatusListener { status ->
+            Platform.runLater {
+                stage.title =
+                    if (status is NodeStatus.Online) {
+                        "${bundle.getString("app.name")} — ${status.address}"
+                    } else {
+                        bundle.getString("app.name")
+                    }
+            }
+        }
         val loader =
             FXMLLoader(
                 AnonymousApplication::class.java.getResource("main-view.fxml"),
