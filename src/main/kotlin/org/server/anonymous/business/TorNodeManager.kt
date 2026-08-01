@@ -29,29 +29,49 @@ class TorNodeManager(
     override fun status(): NodeStatus = currentStatus
 
     // Defensive boundary: any failure must surface as Offline, never die silently.
-    @Suppress("TooGenericExceptionCaught")
     fun start() {
         executor.execute {
-            try {
-                val identity = identityService.getOrCreate()
-                val ports = torProcess.start()
-                setStatus(NodeStatus.Bootstrapping(0))
-                val c = controlFactory()
-                control = c
-                connectWithRetry(c, ports.controlPort)
-                val cookie = Files.readAllBytes(torProcess.cookieFile())
-                c.authenticate(cookie)
-                waitForBootstrap(c)
-                val inboundSocket = ServerSocket(0) // reserved target port (Phase 3 listener)
-                inbound = inboundSocket
-                val address = c.addOnionService(identity.seed, virtualPort = 80, "127.0.0.1", inboundSocket.localPort)
-                setStatus(NodeStatus.Online(address))
-            } catch (t: Throwable) {
-                System.err.println("[tor-node] start failed: ${t.message}")
-                setStatus(NodeStatus.Offline(t.message ?: t::class.simpleName ?: "error"))
+            val lastError = startWithRetry(attempts = 3)
+            if (lastError != null) {
+                System.err.println("[tor-node] start failed: ${lastError.message}")
+                setStatus(NodeStatus.Offline(lastError.message ?: lastError::class.simpleName ?: "error"))
                 runCatching { cleanup() } // keep the error reason, just tear down the process
             }
         }
+    }
+
+    // A leaked tor from a hard-killed session holds the data-dir lock and makes the first
+    // spawn exit immediately; TorProcessManager reaps it, so retry the whole pipeline.
+    @Suppress("TooGenericExceptionCaught") // any node failure retries before surfacing as Offline
+    private fun startWithRetry(attempts: Int): Throwable? {
+        var lastError: Throwable? = null
+        for (attempt in 1..attempts) {
+            try {
+                startOnce()
+                return null
+            } catch (t: Throwable) {
+                lastError = t
+                runCatching { cleanup() } // free ports + kill the dead process before retrying
+                if (attempt < attempts) Thread.sleep(1000)
+            }
+        }
+        return lastError
+    }
+
+    private fun startOnce() {
+        val identity = identityService.getOrCreate()
+        val ports = torProcess.start()
+        setStatus(NodeStatus.Bootstrapping(0))
+        val c = controlFactory()
+        control = c
+        connectWithRetry(c, ports.controlPort)
+        val cookie = Files.readAllBytes(torProcess.cookieFile())
+        c.authenticate(cookie)
+        waitForBootstrap(c)
+        val inboundSocket = ServerSocket(0) // reserved target port (Phase 3 listener)
+        inbound = inboundSocket
+        val address = c.addOnionService(identity.seed, virtualPort = 80, "127.0.0.1", inboundSocket.localPort)
+        setStatus(NodeStatus.Online(address))
     }
 
     fun stop() {
@@ -78,6 +98,7 @@ class TorNodeManager(
         var lastError: Throwable? = null
         val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(60)
         while (System.nanoTime() < deadline) {
+            if (!torProcess.isRunning()) error("tor process exited during startup (stale data-dir lock?)")
             try {
                 c.connect("127.0.0.1", controlPort)
                 return
@@ -92,6 +113,7 @@ class TorNodeManager(
     private fun waitForBootstrap(c: TorControl) {
         val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(120)
         while (System.nanoTime() < deadline) {
+            if (!torProcess.isRunning()) error("tor process exited during bootstrap")
             val progress = c.bootstrapProgress()
             if (progress != null) {
                 if (progress >= 100) return

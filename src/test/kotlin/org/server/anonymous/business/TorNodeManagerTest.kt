@@ -7,6 +7,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 
 class TorNodeManagerTest {
     private class FakeTorProcess(
@@ -15,6 +16,8 @@ class TorNodeManagerTest {
         override fun start(): TorProcessManager.TorPorts = TorProcessManager.TorPorts(9051, 9052)
 
         override fun cookieFile(): Path = cookie
+
+        override fun isRunning(): Boolean = true
 
         override fun stop() = Unit
     }
@@ -93,6 +96,8 @@ class TorNodeManagerTest {
 
                     override fun cookieFile(): Path = dir.resolve("cookie")
 
+                    override fun isRunning(): Boolean = true
+
                     override fun stop() = Unit
                 },
                 { FakeTorControl() },
@@ -104,6 +109,42 @@ class TorNodeManagerTest {
         }
         assertTrue(manager.status() is NodeStatus.Offline)
         assertEquals("boom", (manager.status() as NodeStatus.Offline).reason)
+        manager.stop()
+    }
+
+    @Test
+    fun `recovers when the spawned tor dies from a stale data-dir lock`() {
+        val dir = newTempDir()
+        val cookie = dir.resolve("cookie")
+        Files.write(cookie, byteArrayOf(1, 2, 3))
+        val spawnCount = AtomicInteger(0)
+        val process =
+            object : TorProcess {
+                // First spawn mimics a leaked tor still holding the lock: the new tor exits,
+                // so isRunning() reports false and the connect attempt must abort fast.
+                override fun start(): TorProcessManager.TorPorts {
+                    val n = spawnCount.incrementAndGet()
+                    val port = if (n == 1) 9051 else 9053
+                    return TorProcessManager.TorPorts(port, port + 1)
+                }
+
+                override fun cookieFile(): Path = cookie
+
+                override fun isRunning(): Boolean = spawnCount.get() >= 2
+
+                override fun stop() = Unit
+            }
+        val manager =
+            TorNodeManager(
+                IdentityService(dir.resolve("id")),
+                process,
+                { FakeTorControl() },
+            )
+        val latch = CountDownLatch(1)
+        manager.addStatusListener { if (it is NodeStatus.Online) latch.countDown() }
+        manager.start()
+        assertTrue(latch.await(15, TimeUnit.SECONDS), "node did not recover from stale lock")
+        assertTrue(manager.status() is NodeStatus.Online)
         manager.stop()
     }
 }
