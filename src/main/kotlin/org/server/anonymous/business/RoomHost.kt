@@ -8,6 +8,7 @@ import java.net.ServerSocket
 import java.net.Socket
 import java.security.MessageDigest
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 /**
  * The founder side of rooms (Phase 4): creates and hosts room onion services, manages
@@ -161,7 +162,8 @@ class RoomHost(
         val member = record.members.firstOrNull { it.publicKey.contentEquals(memberKey) } ?: return false
         val updated = record.copy(members = record.members - member)
         store.save(updated)
-        refreshClientAuth(updated)
+        val republished = runCatching { refreshClientAuth(updated) }.isSuccess
+        if (!republished) return false
         broadcastMemberList(updated)
         return true
     }
@@ -188,7 +190,8 @@ class RoomHost(
                     },
             )
         store.save(updated)
-        refreshClientAuth(updated)
+        val revoked = runCatching { refreshClientAuth(updated) }.isSuccess
+        if (!revoked) return false
         rotateRoomKey(updated, excludeKey = memberKey)
         sendControl(updated, member, RoomControls.OP_KICK, ByteArray(0))
         broadcastMemberList(updated)
@@ -254,7 +257,12 @@ class RoomHost(
             )
         val updated = record.copy(members = record.members + member)
         store.save(updated)
-        refreshClientAuth(updated)
+        val republished = runCatching { refreshClientAuth(updated) }.isSuccess
+        if (!republished) {
+            // Roll back the pending invite so a re-publish failure never leaves a half-open door.
+            store.save(record)
+            return OpResult.Failure("Could not publish the room — try the invite again")
+        }
         val invite =
             PrivateRoomInvite(
                 roomId = record.id,
@@ -421,10 +429,29 @@ class RoomHost(
         )
     }
 
+    /**
+     * Re-publishes a room service with the current client-auth list. Tor can stall on a
+     * loaded network and the control socket times out (60s), so retry the delete+re-add
+     * cycle with backoff: a transient stall must never turn an invite or kick into a
+     * thrown exception. The delete is best-effort — re-adding a service that was not
+     * actually deleted would collide, so a failed delete just retries the whole cycle.
+     */
+    @Suppress("TooGenericExceptionCaught") // the retry swallows any control failure to keep publishing
     private fun refreshClientAuth(record: RoomRecord) {
         if (record.type != RoomType.PRIVATE || record.serviceAddress.isEmpty()) return
-        torControl().deleteOnionService(record.serviceAddress)
-        ensureRoomService(record)
+        var lastError: Throwable? = null
+        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(480)
+        while (System.nanoTime() < deadline) {
+            try {
+                runCatching { torControl().deleteOnionService(record.serviceAddress) }
+                ensureRoomService(record)
+                return
+            } catch (t: Throwable) {
+                lastError = t
+                Thread.sleep(2000)
+            }
+        }
+        error("room service re-publish never succeeded: ${lastError?.message}")
     }
 
     private fun ensureRoomService(record: RoomRecord): String {
