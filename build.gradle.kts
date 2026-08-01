@@ -182,7 +182,17 @@ tasks.named("processResources") {
 
 jlink {
     imageZip.set(layout.buildDirectory.file("distributions/app-${javafx.platform.classifier}.zip"))
-    options.set(listOf("--strip-debug", "--compress", "2", "--no-header-files", "--no-man-pages"))
+    options.set(
+        listOf(
+            "--strip-debug",
+            "--compress",
+            "2",
+            "--no-header-files",
+            "--no-man-pages",
+            "--add-modules",
+            "jdk.crypto.ec", // fresh identities use the JDK Ed25519 provider — a trimmed image drops it otherwise
+        ),
+    )
     launcher {
         name = "anonymous"
         // A modest heap cap keeps the JVM a small OOM target on constrained machines when the

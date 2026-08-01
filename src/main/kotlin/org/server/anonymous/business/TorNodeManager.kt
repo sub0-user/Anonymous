@@ -172,7 +172,9 @@ class TorNodeManager(
     }
 
     private fun waitForBootstrap(c: TorControl) {
-        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(120)
+        // Generous budget: on a slow or loaded network tor can take minutes to reach 100%,
+        // and giving up early just means the watchdog has to retry the whole pipeline.
+        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(480)
         while (System.nanoTime() < deadline) {
             if (!torProcess.isRunning()) error("tor process exited during bootstrap")
             val progress = c.bootstrapProgress()
@@ -182,7 +184,7 @@ class TorNodeManager(
             }
             Thread.sleep(1000)
         }
-        error("Tor did not bootstrap within 120s")
+        error("Tor did not bootstrap within 480s")
     }
 
     private fun setStatus(status: NodeStatus) {
