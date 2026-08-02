@@ -130,8 +130,13 @@ class MainController(
 
     @FXML
     fun onJoinRoomClicked() {
+        openJoinRoomDialog()
+    }
+
+    /** Opens the join-room dialog, optionally with the invite already pasted (from a chat message). */
+    private fun openJoinRoomDialog(prefill: String? = null) {
         val bundle = ResourceBundle.getBundle("org.server.anonymous.messages")
-        val viewModel = JoinRoomViewModel(appGraph.roomMessenger)
+        val viewModel = JoinRoomViewModel(appGraph.roomMessenger, prefill)
         val dialog = Dialog<RoomRecord>()
         val loader = FXMLLoader(MainController::class.java.getResource("join-room-dialog.fxml"), bundle)
         loader.controllerFactory = Callback { JoinRoomDialogController(viewModel) }
@@ -196,10 +201,14 @@ class MainController(
         chatViewModel = viewModel
         val view: Node =
             load("chat-view.fxml") {
-                ChatController(viewModel) {
-                    chatListViewModel.refresh()
-                    showIdentity()
-                }
+                ChatController(
+                    viewModel,
+                    onContactDeleted = {
+                        chatListViewModel.refresh()
+                        showIdentity()
+                    },
+                    onJoinInvite = { invite -> openJoinRoomDialog(invite) },
+                )
             }
         swapContent(view)
     }
@@ -211,6 +220,7 @@ class MainController(
                 if (room.isFounder) appGraph.roomHost else null,
                 room.id,
                 { appGraph.contactService.listContacts() },
+                appGraph.messageService,
             )
         val view: Node = load("room-chat-view.fxml") { RoomChatController(viewModel) }
         swapContent(view)

@@ -33,6 +33,8 @@ class RoomChatController(
 
     @FXML private lateinit var feedbackLabel: Label
 
+    @FXML private lateinit var inviteFeedbackLabel: Label
+
     private val bundle = ResourceBundle.getBundle("org.server.anonymous.messages")
 
     @Suppress("UnusedPrivateMember") // invoked reflectively by FXML
@@ -41,6 +43,7 @@ class RoomChatController(
         titleLabel.textProperty().bind(viewModel.title)
         subtitleLabel.textProperty().bind(viewModel.subtitle)
         feedbackLabel.textProperty().bind(viewModel.sendFeedback)
+        inviteFeedbackLabel.textProperty().bind(viewModel.inviteFeedback)
         messageList.items = viewModel.messages
         messageList.setCellFactory { RoomMessageCell(viewModel::displayNameFor) }
         draftField.textProperty().bindBidirectional(viewModel.draft)
@@ -81,6 +84,13 @@ class RoomChatController(
         }
         dialog.setResultConverter { controller.createdInvite }
         dialog.showAndWait()
+        controller.outcome?.let { invite ->
+            val sent = bundle.getString("room.invite.sent").replace("{alias}", invite.contactAlias)
+            val copied = bundle.getString("room.invite.copy_only").replace("{alias}", invite.contactAlias)
+            viewModel.inviteFeedback.set(
+                if (invite.delivered) sent else copied.replace("{reason}", invite.sendError ?: "?"),
+            )
+        }
     }
 
     @FXML

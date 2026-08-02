@@ -12,6 +12,7 @@ import java.util.ResourceBundle
 class ChatController(
     private val viewModel: ChatViewModel,
     private val onContactDeleted: () -> Unit = {},
+    private val onJoinInvite: (String) -> Unit = {},
 ) {
     @FXML private lateinit var titleLabel: Label
 
@@ -35,7 +36,7 @@ class ChatController(
         titleLabel.textProperty().bind(viewModel.title)
         subtitleLabel.textProperty().bind(viewModel.subtitle)
         messageList.items = viewModel.messages
-        messageList.setCellFactory { MessageBubbleCell() }
+        messageList.setCellFactory { MessageBubbleCell(onJoinInvite) }
         draftField.textProperty().bindBidirectional(viewModel.draft)
         sendButton.disableProperty().bind(
             Bindings.createBooleanBinding(

@@ -5,6 +5,7 @@ import javafx.beans.property.SimpleBooleanProperty
 import javafx.beans.property.SimpleStringProperty
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
+import org.server.anonymous.business.MessageService
 import org.server.anonymous.business.OpResult
 import org.server.anonymous.business.RoomHost
 import org.server.anonymous.business.RoomMessenger
@@ -21,12 +22,14 @@ class RoomChatViewModel(
     private val roomHost: RoomHost?,
     private val roomId: Long,
     private val contacts: () -> List<Contact>,
+    private val messageService: MessageService? = null,
 ) {
     val messages: ObservableList<RoomMessageItem> = FXCollections.observableArrayList()
     val title = SimpleStringProperty("")
     val subtitle = SimpleStringProperty("")
     val draft = SimpleStringProperty("")
     val sendFeedback = SimpleStringProperty("")
+    val inviteFeedback = SimpleStringProperty("")
     val founderVisible = SimpleBooleanProperty(false)
 
     val isFounder: Boolean
@@ -79,6 +82,21 @@ class RoomChatViewModel(
             },
         ) ?: OpResult.Failure("Only the founder can invite")
 
+    /**
+     * Delivers the invite as a 1:1 chat message so the invitee can tap "Join room" —
+     * rides the offline outbox, so the invite arrives even if they are not online right now.
+     */
+    fun sendInvite(
+        contact: Contact,
+        invite: String,
+    ): OpResult<Unit> {
+        val service = messageService ?: return OpResult.Failure("Chat messages are not available")
+        return when (val result = service.send(contact.id, invite)) {
+            is OpResult.Success -> OpResult.Success(Unit)
+            is OpResult.Failure -> OpResult.Failure(result.reason)
+        }
+    }
+
     fun removeMember(member: RoomMember): Boolean {
         val ok = roomHost?.kickMember(roomId, member.publicKey) == true
         sync()
@@ -116,3 +134,11 @@ class RoomChatViewModel(
         messages.setAll(roomMessenger.messagesFor(roomId))
     }
 }
+
+/** What happened to a freshly created invite: whether it was also delivered as a chat message. */
+data class InviteOutcome(
+    val invite: String,
+    val contactAlias: String,
+    val delivered: Boolean,
+    val sendError: String?,
+)

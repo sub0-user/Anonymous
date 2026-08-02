@@ -181,7 +181,10 @@ class FxmlSmokeTest {
             sender = { _, _, _, _ -> true },
         )
 
-    private fun roomChatViewModel(): RoomChatViewModel = RoomChatViewModel(roomMessenger(), null, 0L) { emptyList() }
+    private fun roomChatViewModel(): RoomChatViewModel {
+        val messenger = roomMessenger()
+        return RoomChatViewModel(messenger, null, 0L, contacts = { emptyList() })
+    }
 
     @Test
     fun `room chat view loads`() =

@@ -421,4 +421,22 @@ class RoomMessengerTest {
         assertEquals(RoomControls.OP_LEAVE, frame.op)
         assertTrue(fx.store.loadAll().isEmpty())
     }
+
+    @Test
+    fun `join returns false when the transport refuses`() {
+        val storeDir = newDir()
+        val store = RoomStore(storeDir)
+        val refused =
+            RoomMessenger(store, { identity }, { _, _, _, _ -> false })
+        store.save(
+            memberRecord().copy(
+                type = RoomType.PUBLIC,
+                entryKey = EntryKey.generate(),
+                roomKey = ByteArray(0),
+                keyVersion = 0,
+            ),
+        )
+        assertFalse(refused.join(roomId))
+        refused.stop()
+    }
 }

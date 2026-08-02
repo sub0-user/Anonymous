@@ -23,6 +23,7 @@
                         styleClass="ghost-button" mnemonicParsing="false"/>
             </HBox>
             <Label fx:id="feedbackLabel" styleClass="error-text"/>
+            <Label fx:id="inviteFeedbackLabel" styleClass="status-text" wrapText="true"/>
         </VBox>
     </top>
     <center>

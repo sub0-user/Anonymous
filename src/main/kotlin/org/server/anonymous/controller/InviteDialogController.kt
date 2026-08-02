@@ -35,6 +35,9 @@ class InviteDialogController(
     /** Set when the invite was created; the dialog closes only then. */
     var createdInvite: String? = null
 
+    /** How the created invite was delivered (chat message vs clipboard-only); read after the dialog closes. */
+    var outcome: InviteOutcome? = null
+
     /** True while the invite is being published (re-publish can take a minute) — Phase B3. */
     val busy = SimpleBooleanProperty(false)
 
@@ -52,6 +55,10 @@ class InviteDialogController(
         inviteLabel.text = ""
         busyLabel.visibleProperty().bind(busy)
         busyLabel.managedProperty().bind(busy)
+        if (contacts.isEmpty()) {
+            // Explain the empty picker before the user even clicks Create.
+            feedbackLabel.text = bundle.getString("room.invite.no_contact")
+        }
     }
 
     /** Synchronous create; kept for tests. */
@@ -65,11 +72,7 @@ class InviteDialogController(
         val days = expiryField.text.trim().toLongOrNull()
         when (val result = viewModel.copyInvite(contact, nameField.text, days)) {
             is OpResult.Failure -> feedbackLabel.text = result.reason
-            is OpResult.Success -> {
-                createdInvite = result.value
-                inviteLabel.text = result.value
-                Clipboard.getSystemClipboard().setContent(ClipboardContent().apply { putString(result.value) })
-            }
+            is OpResult.Success -> completeInvite(result.value, contact)
         }
     }
 
@@ -93,16 +96,30 @@ class InviteDialogController(
                 busy.set(false)
                 when (result) {
                     is OpResult.Failure -> feedbackLabel.text = result.reason
-                    is OpResult.Success -> {
-                        createdInvite = result.value
-                        inviteLabel.text = result.value
-                        val clipboard = Clipboard.getSystemClipboard()
-                        clipboard.setContent(ClipboardContent().apply { putString(result.value) })
-                    }
+                    is OpResult.Success -> completeInvite(result.value, contact)
                 }
                 onDone()
             }
         }
+    }
+
+    /** Invite created: show + copy it, then deliver it as a chat message to the contact. */
+    private fun completeInvite(
+        invite: String,
+        contact: Contact,
+    ) {
+        createdInvite = invite
+        inviteLabel.text = invite
+        val clipboard = Clipboard.getSystemClipboard()
+        clipboard.setContent(ClipboardContent().apply { putString(invite) })
+        val sent = viewModel.sendInvite(contact, invite)
+        outcome =
+            InviteOutcome(
+                invite = invite,
+                contactAlias = contact.alias,
+                delivered = sent is OpResult.Success,
+                sendError = (sent as? OpResult.Failure)?.reason,
+            )
     }
 
     private fun contactCell(): ListCell<Contact> =
