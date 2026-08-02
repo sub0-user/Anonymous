@@ -433,16 +433,18 @@ class RoomHost(
 
     /**
      * Re-publishes a room service with the current client-auth list. Tor can stall on a
-     * loaded network and the control socket times out (60s), so retry the delete+re-add
+     * loaded network and the control socket times out (15s), so retry the delete+re-add
      * cycle with backoff: a transient stall must never turn an invite or kick into a
      * thrown exception. The delete is best-effort — re-adding a service that was not
      * actually deleted would collide, so a failed delete just retries the whole cycle.
+     * Publishing is millisecond-fast on a healthy node; the 45s cap (≈3 stalled attempts)
+     * bounds a bad moment so the dialog fails fast instead of hanging for minutes.
      */
     @Suppress("TooGenericExceptionCaught") // the retry swallows any control failure to keep publishing
     private fun refreshClientAuth(record: RoomRecord) {
         if (record.type != RoomType.PRIVATE || record.serviceAddress.isEmpty()) return
         var lastError: Throwable? = null
-        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(480)
+        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(45)
         while (System.nanoTime() < deadline) {
             try {
                 runCatching { torControl().deleteOnionService(record.serviceAddress) }
@@ -450,7 +452,7 @@ class RoomHost(
                 return
             } catch (t: Throwable) {
                 lastError = t
-                Thread.sleep(2000)
+                Thread.sleep(1000)
             }
         }
         error("room service re-publish never succeeded: ${lastError?.message}")

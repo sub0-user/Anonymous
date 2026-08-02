@@ -35,8 +35,10 @@ class ControlProtocolClient : TorControl {
     ) {
         val s = Socket(host, port)
         // Bounds every command: a stalled tor (e.g. congested network during ADD_ONION)
-        // must surface as a timeout, never an infinite hang.
-        s.soTimeout = 60_000
+        // must surface as a timeout, never an infinite hang. Control round trips are
+        // millisecond-fast on a healthy node, so 15s is plenty — a 60s block would just
+        // make the room-publish spinner hang for a minute on a bad moment.
+        s.soTimeout = 15_000
         socket = s
         reader = BufferedReader(InputStreamReader(s.getInputStream(), StandardCharsets.US_ASCII))
         writer = BufferedWriter(OutputStreamWriter(s.getOutputStream(), StandardCharsets.US_ASCII))
