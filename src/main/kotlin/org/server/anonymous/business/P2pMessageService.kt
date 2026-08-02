@@ -125,6 +125,37 @@ class P2pMessageService(
         return OpResult.Success(message)
     }
 
+    /**
+     * One session handshake with the peer binds their static key (see sendViaSession), with no
+     * message stored on either side. Lets the founder invite a contact they have never talked to.
+     */
+    override fun probePeerKey(contact: Contact): OpResult<ByteArray> {
+        val online = nodeStatus() as? NodeStatus.Online
+        val failure =
+            when {
+                online == null -> "Node is not online"
+                contactService.isBlocked(contact.address.value) -> "Contact is blocked"
+                else -> null
+            }
+        if (failure != null) return OpResult.Failure(failure)
+        val node = online!!
+        return runCatching {
+            val socket = socketFactory(node.socksPort, contact.address.value, 80)
+            try {
+                val session = MessageSession.initiate(socket, keys, node.address)
+                contactService.bindPeerKey(contact.id, session.peerPublicKey)
+                session.peerPublicKey
+            } finally {
+                socket.close()
+            }
+        }.fold(
+            onSuccess = { OpResult.Success(it) },
+            onFailure = {
+                OpResult.Failure("Couldn't reach ${contact.alias} to exchange keys — try again when they're online")
+            },
+        )
+    }
+
     /** Starts the inbound accept loop; idempotent. Binds to the node's current listener socket. */
     @Suppress("TooGenericExceptionCaught", "SwallowedException") // accept can fail during a restart
     fun startListener() {

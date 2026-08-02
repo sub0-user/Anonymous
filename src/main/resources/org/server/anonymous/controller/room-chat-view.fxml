@@ -21,6 +21,10 @@
                         styleClass="ghost-button" mnemonicParsing="false"/>
                 <Button fx:id="clearHistoryButton" text="%chat.clear_history" onAction="#onClearHistoryClicked"
                         styleClass="ghost-button" mnemonicParsing="false"/>
+                <Button fx:id="leaveButton" text="%room.leave" onAction="#onLeaveClicked"
+                        styleClass="ghost-button" mnemonicParsing="false"/>
+                <Button fx:id="deleteButton" text="%room.delete" onAction="#onDeleteClicked"
+                        styleClass="ghost-button" mnemonicParsing="false"/>
             </HBox>
             <Label fx:id="feedbackLabel" styleClass="error-text"/>
             <Label fx:id="inviteFeedbackLabel" styleClass="status-text" wrapText="true"/>

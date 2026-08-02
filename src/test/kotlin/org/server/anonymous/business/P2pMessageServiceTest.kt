@@ -1,6 +1,8 @@
 package org.server.anonymous.business
 
+import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.server.anonymous.business.model.Contact
@@ -276,5 +278,40 @@ class P2pMessageServiceTest {
         } finally {
             listener.close()
         }
+    }
+
+    @Test
+    fun `probePeerKey binds and returns the peer key`() {
+        val book = ContactBook()
+        val contact = contactFor(book)
+        assertNull(book.peerPublicKeyOf(contact.id))
+        val peer = FakePeer(keysB, addressB).also { it.start() }
+        try {
+            val svc = service(book, socketFactory = peerSocketFactory(peer))
+            val result = svc.probePeerKey(contact)
+            assertTrue(result is OpResult.Success)
+            assertArrayEquals(keysB.publicKey, (result as OpResult.Success).value)
+            assertArrayEquals(keysB.publicKey, book.peerPublicKeyOf(contact.id))
+        } finally {
+            peer.close()
+        }
+    }
+
+    @Test
+    fun `probePeerKey fails cleanly when the peer is unreachable`() {
+        val book = ContactBook()
+        val contact = contactFor(book)
+        val svc = service(book)
+        assertTrue(svc.probePeerKey(contact) is OpResult.Failure)
+        assertNull(book.peerPublicKeyOf(contact.id))
+    }
+
+    @Test
+    fun `probePeerKey refuses a blocked contact`() {
+        val book = ContactBook()
+        val contact = contactFor(book)
+        book.block(addressB)
+        val svc = service(book)
+        assertTrue(svc.probePeerKey(contact) is OpResult.Failure)
     }
 }

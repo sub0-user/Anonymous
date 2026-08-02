@@ -42,7 +42,8 @@ class RoomChatViewModel(
         sync()
     }
 
-    fun contactsForInvite(): List<Contact> = contacts().filter { it.peerPublicKey != null }
+    /** Every contact can be invited — being a contact already implies trust. */
+    fun contactsForInvite(): List<Contact> = contacts()
 
     fun members(): List<RoomMember> = currentRoom()?.members ?: emptyList()
 
@@ -67,20 +68,38 @@ class RoomChatViewModel(
         sync()
     }
 
+    /**
+     * Creates the invite for a contact. A contact we have never talked to has no cached key,
+     * so exchange one first via a session handshake (off the FX thread, from the invite dialog);
+     * contacts we have talked to are invited instantly with their cached key.
+     */
     fun copyInvite(
         contact: Contact,
         memberName: String,
         expiryDays: Long?,
-    ): OpResult<String> =
-        roomHost?.createInvite(
+    ): OpResult<String> {
+        val cachedKey = contact.peerPublicKey
+        val keyResult =
+            if (cachedKey != null) {
+                OpResult.Success(cachedKey)
+            } else {
+                messageService?.probePeerKey(contact) ?: OpResult.Failure("Chat messages are not available")
+            }
+        val peerKey =
+            when (keyResult) {
+                is OpResult.Failure -> return keyResult
+                is OpResult.Success -> keyResult.value
+            }
+        return roomHost?.createInvite(
             roomId,
             contact.address.value,
-            contact.peerPublicKey!!,
+            peerKey,
             memberName,
             expiryDays?.let { days ->
                 if (days > 0) System.currentTimeMillis() / 1000 + days * 86_400 else null
             },
         ) ?: OpResult.Failure("Only the founder can invite")
+    }
 
     /**
      * Delivers the invite as a 1:1 chat message so the invitee can tap "Join room" —
@@ -102,6 +121,12 @@ class RoomChatViewModel(
         sync()
         return ok
     }
+
+    /** Member exits the room: sends LEAVE and drops the local record. */
+    fun leaveRoom(): Boolean = roomMessenger.leaveRoom(roomId)
+
+    /** Founder tears the room down: onion service removed and the record deleted. */
+    fun deleteRoom(): Boolean = roomHost?.deleteRoom(roomId) == true
 
     fun renameMember(
         member: RoomMember,

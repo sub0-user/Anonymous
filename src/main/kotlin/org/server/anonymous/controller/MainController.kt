@@ -222,7 +222,13 @@ class MainController(
                 { appGraph.contactService.listContacts() },
                 appGraph.messageService,
             )
-        val view: Node = load("room-chat-view.fxml") { RoomChatController(viewModel) }
+        val view: Node =
+            load("room-chat-view.fxml") {
+                RoomChatController(viewModel) {
+                    roomsListViewModel.refresh()
+                    showIdentity()
+                }
+            }
         swapContent(view)
     }
 

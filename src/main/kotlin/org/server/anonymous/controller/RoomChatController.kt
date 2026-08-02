@@ -3,6 +3,7 @@ package org.server.anonymous.controller
 import javafx.event.ActionEvent
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
+import javafx.scene.control.Alert
 import javafx.scene.control.Button
 import javafx.scene.control.ButtonBar
 import javafx.scene.control.ButtonType
@@ -18,6 +19,7 @@ import java.util.ResourceBundle
 /** Room chat: header (name, type, member count), founder actions, composer, message list. */
 class RoomChatController(
     private val viewModel: RoomChatViewModel,
+    private val onRoomLeft: () -> Unit = {},
 ) {
     @FXML private lateinit var titleLabel: Label
 
@@ -35,6 +37,12 @@ class RoomChatController(
 
     @FXML private lateinit var inviteFeedbackLabel: Label
 
+    @Suppress("UnusedPrivateProperty") // injected by FXML; always visible (no binding needed)
+    @FXML
+    private lateinit var leaveButton: Button
+
+    @FXML private lateinit var deleteButton: Button
+
     private val bundle = ResourceBundle.getBundle("org.server.anonymous.messages")
 
     @Suppress("UnusedPrivateMember") // invoked reflectively by FXML
@@ -51,6 +59,8 @@ class RoomChatController(
         inviteButton.managedProperty().bind(viewModel.founderVisible)
         membersButton.visibleProperty().bind(viewModel.founderVisible)
         membersButton.managedProperty().bind(viewModel.founderVisible)
+        deleteButton.visibleProperty().bind(viewModel.founderVisible)
+        deleteButton.managedProperty().bind(viewModel.founderVisible)
         messageList.scrollTo((viewModel.messages.size - 1).coerceAtLeast(0))
     }
 
@@ -108,5 +118,23 @@ class RoomChatController(
     @FXML
     fun onClearHistoryClicked() {
         viewModel.clearHistory()
+    }
+
+    @FXML
+    fun onLeaveClicked() {
+        val message = bundle.getString("room.leave.confirm").replace("{room}", viewModel.title.get())
+        val dialog = Alert(Alert.AlertType.CONFIRMATION, message)
+        dialog.title = bundle.getString("room.leave")
+        val confirmed = dialog.showAndWait().filter { it == ButtonType.OK }.isPresent
+        if (confirmed && viewModel.leaveRoom()) onRoomLeft()
+    }
+
+    @FXML
+    fun onDeleteClicked() {
+        val message = bundle.getString("room.delete.confirm").replace("{room}", viewModel.title.get())
+        val dialog = Alert(Alert.AlertType.CONFIRMATION, message)
+        dialog.title = bundle.getString("room.delete")
+        val confirmed = dialog.showAndWait().filter { it == ButtonType.OK }.isPresent
+        if (confirmed && viewModel.deleteRoom()) onRoomLeft()
     }
 }
