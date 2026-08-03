@@ -195,6 +195,34 @@ class RoomMessengerTest {
     }
 
     @Test
+    fun `a sent room message decrypts on the receiving side`() {
+        // Regression: sendMessage must encrypt with the same nonce it stores in the envelope,
+        // or the recipient's AEAD tag fails and every room message is silently dropped.
+        val fx = fixture()
+        val alice = IdentityKeys.x25519KeyPairFromSeed(ByteArray(32) { 21 })
+        fx.store.save(
+            memberRecord(
+                members =
+                    listOf(
+                        RoomMember(myKeys.publicKey, "me"),
+                        RoomMember(alice.publicKey, "alice", address = "b".repeat(56) + ".onion"),
+                    ),
+            ),
+        )
+        fx.messenger.sendMessage(roomId, "hello room")
+        val (_, _, body) = fx.sender.single()
+        val envelope = RoomEnvelope.decodeRoomMessage(body)
+        val plaintext =
+            SessionCrypto.decrypt(
+                roomKey,
+                envelope.nonce,
+                envelope.ciphertext,
+                RoomEnvelope.roomAad(roomId, envelope.keyVersion),
+            )
+        assertEquals("hello room", plaintext.toString(Charsets.UTF_8))
+    }
+
+    @Test
     fun `undelivered fan-out is retried until the member accepts`() {
         val store = RoomStore(newDir())
         val alice = IdentityKeys.x25519KeyPairFromSeed(ByteArray(32) { 21 })

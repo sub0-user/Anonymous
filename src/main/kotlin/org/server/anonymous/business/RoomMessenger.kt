@@ -143,16 +143,19 @@ class RoomMessenger(
         synchronized(messages) { messages.getOrPut(roomId) { mutableListOf() } += message }
         roomHistory?.append(roomId, message)
         notify(message)
+        // One nonce for both the envelope field and the AEAD — a mismatch would fail the
+        // recipient's decrypt tag and the message would be silently dropped.
+        val nonce = SessionCrypto.randomNonce()
         val envelope =
             RoomEnvelope.encodeRoomMessage(
                 RoomEnvelope.RoomMessage(
                     roomId = roomId,
                     keyVersion = record.keyVersion,
-                    nonce = SessionCrypto.randomNonce(),
+                    nonce = nonce,
                     ciphertext =
                         SessionCrypto.encrypt(
                             record.roomKey,
-                            SessionCrypto.randomNonce(),
+                            nonce,
                             ReplyCodec.encode(text, replyTo),
                             RoomEnvelope.roomAad(roomId, record.keyVersion),
                         ),
