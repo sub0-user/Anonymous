@@ -20,12 +20,8 @@
                     styleClass="accent-button" maxWidth="Infinity" mnemonicParsing="false"/>
             <Label text="%rooms.title" styleClass="label-caption" maxWidth="Infinity"/>
             <ListView fx:id="roomsListView" styleClass="chat-list" prefHeight="140.0" maxHeight="220.0"/>
-            <HBox spacing="8.0">
-                <Button text="%rooms.new" onAction="#onNewRoomClicked"
-                        styleClass="ghost-button" HBox.hgrow="ALWAYS" maxWidth="Infinity" mnemonicParsing="false"/>
-                <Button text="%rooms.join" onAction="#onJoinRoomClicked"
-                        styleClass="ghost-button" HBox.hgrow="ALWAYS" maxWidth="Infinity" mnemonicParsing="false"/>
-            </HBox>
+            <Button text="%rooms.new" onAction="#onNewRoomClicked"
+                    styleClass="ghost-button" maxWidth="Infinity" mnemonicParsing="false"/>
             <Button text="%nav.requests" onAction="#onShowRequestsClicked"
                     styleClass="ghost-button" maxWidth="Infinity" mnemonicParsing="false"/>
             <HBox spacing="8.0">

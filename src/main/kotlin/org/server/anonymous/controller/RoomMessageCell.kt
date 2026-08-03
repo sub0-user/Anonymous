@@ -3,10 +3,15 @@ package org.server.anonymous.controller
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
 import javafx.geometry.Pos
+import javafx.scene.control.ContextMenu
 import javafx.scene.control.Label
 import javafx.scene.control.ListCell
+import javafx.scene.control.MenuItem
+import javafx.scene.input.Clipboard
+import javafx.scene.input.ClipboardContent
 import javafx.scene.layout.HBox
 import org.server.anonymous.business.model.RoomMessageItem
+import java.util.ResourceBundle
 
 /** Renders one room message: "name · body" bubble with a time label, reusing the 1:1 bubble. */
 class RoomMessageCell(
@@ -20,10 +25,20 @@ class RoomMessageCell(
 
     private val rootNode: HBox
 
+    private var currentBody: String? = null
+
     init {
-        val loader = FXMLLoader(RoomMessageCell::class.java.getResource("message-bubble-cell.fxml"))
+        val bundle = ResourceBundle.getBundle("org.server.anonymous.messages")
+        val loader = FXMLLoader(RoomMessageCell::class.java.getResource("message-bubble-cell.fxml"), bundle)
         loader.setController(this)
         rootNode = loader.load<HBox>()
+        val copyItem = MenuItem(bundle.getString("chat.copy"))
+        copyItem.setOnAction {
+            currentBody?.let { body ->
+                Clipboard.getSystemClipboard().setContent(ClipboardContent().apply { putString(body) })
+            }
+        }
+        contextMenu = ContextMenu(copyItem)
     }
 
     override fun updateItem(
@@ -33,8 +48,10 @@ class RoomMessageCell(
         super.updateItem(item, empty)
         if (item == null || empty) {
             graphic = null
+            currentBody = null
             return
         }
+        currentBody = item.body
         bodyLabel.text = "${displayNameFor(item.senderPublicKey)}: ${item.body}"
         metaLabel.text = item.timeLabel
         bubble.styleClass.removeAll("bubble-out", "bubble-in")

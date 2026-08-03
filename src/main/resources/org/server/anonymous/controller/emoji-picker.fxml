@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.layout.VBox?>
+<VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="org.server.anonymous.controller.EmojiPickerController" styleClass="emoji-picker">
+    <ListView fx:id="emojiList" orientation="HORIZONTAL" prefHeight="44.0" prefWidth="340.0"/>
+</VBox>

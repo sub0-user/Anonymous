@@ -4,8 +4,12 @@ import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
 import javafx.geometry.Pos
 import javafx.scene.control.Button
+import javafx.scene.control.ContextMenu
 import javafx.scene.control.Label
 import javafx.scene.control.ListCell
+import javafx.scene.control.MenuItem
+import javafx.scene.input.Clipboard
+import javafx.scene.input.ClipboardContent
 import javafx.scene.layout.HBox
 import org.server.anonymous.business.model.MessageDirection
 import org.server.anonymous.business.model.MessageItem
@@ -14,7 +18,8 @@ import java.util.ResourceBundle
 
 /**
  * Renders one message bubble from message-bubble-cell.fxml.
- * Received room invites (the app's own invite format) get a one-tap "Join room" button.
+ * Received room invites (the app's own invite format) get a one-tap "Accept invite" button,
+ * and every bubble gets a right-click Copy menu.
  */
 class MessageBubbleCell(
     private val onJoinInvite: (String) -> Unit = {},
@@ -31,11 +36,20 @@ class MessageBubbleCell(
 
     private var currentInvite: String? = null
 
+    private var currentBody: String? = null
+
     init {
         val bundle = ResourceBundle.getBundle("org.server.anonymous.messages")
         val loader = FXMLLoader(MessageBubbleCell::class.java.getResource("message-bubble-cell.fxml"), bundle)
         loader.setController(this)
         rootNode = loader.load<HBox>()
+        val copyItem = MenuItem(bundle.getString("chat.copy"))
+        copyItem.setOnAction {
+            currentBody?.let { body ->
+                Clipboard.getSystemClipboard().setContent(ClipboardContent().apply { putString(body) })
+            }
+        }
+        contextMenu = ContextMenu(copyItem)
     }
 
     override fun updateItem(
@@ -45,8 +59,10 @@ class MessageBubbleCell(
         super.updateItem(item, empty)
         if (item == null || empty) {
             graphic = null
+            currentBody = null
             return
         }
+        currentBody = item.body
         bodyLabel.text = item.body
         metaLabel.text =
             when (item.direction) {

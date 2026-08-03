@@ -43,6 +43,8 @@ class RoomChatController(
 
     @FXML private lateinit var deleteButton: Button
 
+    @FXML private lateinit var emojiButton: Button
+
     private val bundle = ResourceBundle.getBundle("org.server.anonymous.messages")
 
     @Suppress("UnusedPrivateMember") // invoked reflectively by FXML
@@ -68,6 +70,16 @@ class RoomChatController(
     fun onSendClicked() {
         viewModel.send()
         messageList.scrollTo((viewModel.messages.size - 1).coerceAtLeast(0))
+    }
+
+    @FXML
+    fun onEmojiClicked() {
+        EmojiPicker.show(emojiButton) { emoji ->
+            val caret = draftField.caretPosition
+            draftField.insertText(caret, emoji)
+            draftField.requestFocus()
+            draftField.positionCaret(caret + emoji.length)
+        }
     }
 
     @FXML

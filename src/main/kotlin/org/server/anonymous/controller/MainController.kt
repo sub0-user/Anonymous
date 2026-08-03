@@ -128,13 +128,8 @@ class MainController(
         }
     }
 
-    @FXML
-    fun onJoinRoomClicked() {
-        openJoinRoomDialog()
-    }
-
-    /** Opens the join-room dialog, optionally with the invite already pasted (from a chat message). */
-    private fun openJoinRoomDialog(prefill: String? = null) {
+    /** Opens the accept-invite dialog with the invite pre-filled from the chat message. */
+    private fun openJoinRoomDialog(prefill: String) {
         val bundle = ResourceBundle.getBundle("org.server.anonymous.messages")
         val viewModel = JoinRoomViewModel(appGraph.roomMessenger, prefill)
         val dialog = Dialog<RoomRecord>()
@@ -142,7 +137,7 @@ class MainController(
         loader.controllerFactory = Callback { JoinRoomDialogController(viewModel) }
         dialog.dialogPane = loader.load()
         dialog.dialogPane.stylesheets.add(AnonymousApplication.stylesheet())
-        dialog.title = bundle.getString("rooms.join")
+        dialog.title = bundle.getString("room.join.accept")
         val joinType = ButtonType(bundle.getString("dialog.join"), ButtonBar.ButtonData.OK_DONE)
         dialog.dialogPane.buttonTypes.add(joinType)
         dialog.dialogPane.lookupButton(joinType).addEventFilter(ActionEvent.ACTION) { event ->

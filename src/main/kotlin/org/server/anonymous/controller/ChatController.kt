@@ -24,6 +24,8 @@ class ChatController(
 
     @FXML private lateinit var sendButton: Button
 
+    @FXML private lateinit var emojiButton: Button
+
     @FXML private lateinit var blockButton: Button
 
     @FXML private lateinit var feedbackLabel: Label
@@ -64,6 +66,16 @@ class ChatController(
     fun onSendClicked() {
         viewModel.send()
         messageList.scrollTo((viewModel.messages.size - 1).coerceAtLeast(0))
+    }
+
+    @FXML
+    fun onEmojiClicked() {
+        EmojiPicker.show(emojiButton) { emoji ->
+            val caret = draftField.caretPosition
+            draftField.insertText(caret, emoji)
+            draftField.requestFocus()
+            draftField.positionCaret(caret + emoji.length)
+        }
     }
 
     @FXML

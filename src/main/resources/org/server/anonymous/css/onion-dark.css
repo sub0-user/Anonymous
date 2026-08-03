@@ -110,6 +110,25 @@
 }
 .error-text { -fx-text-fill: -error; -fx-font-size: 11px; }
 
+/* Emoji strip popup. */
+.emoji-picker {
+    -fx-background-color: -panel;
+    -fx-border-color: -border;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 6;
+}
+.emoji-picker .list-view {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+.emoji-cell {
+    -fx-font-size: 22px;
+    -fx-padding: 2 8;
+    -fx-background-color: transparent;
+}
+.emoji-cell:filled:hover { -fx-background-color: -raised; }
+
 /* Dialogs: force the dark chrome. */
 .dialog-pane { -fx-background-color: -bg; }
 .dialog-pane > .button-bar > .container { -fx-background-color: -panel; }

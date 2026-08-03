@@ -32,6 +32,8 @@
         <HBox styleClass="composer" spacing="8.0" alignment="CENTER_LEFT">
             <TextField fx:id="draftField" promptText="%chat.composer.prompt" styleClass="composer-field"
                        HBox.hgrow="ALWAYS" onAction="#onSendClicked"/>
+            <Button fx:id="emojiButton" text="😊" onAction="#onEmojiClicked"
+                    styleClass="ghost-button" mnemonicParsing="false"/>
             <Button fx:id="sendButton" text="%chat.send" onAction="#onSendClicked" styleClass="accent-button" mnemonicParsing="false"/>
         </HBox>
     </bottom>

@@ -15,7 +15,8 @@
     <VBox styleClass="address-card" spacing="8.0" maxWidth="Infinity">
         <Label text="%identity.your_number" styleClass="label-caption"/>
         <HBox alignment="CENTER_LEFT" spacing="8.0">
-            <Label fx:id="addressLabel" styleClass="mono" HBox.hgrow="ALWAYS"/>
+            <Label fx:id="addressLabel" styleClass="mono" HBox.hgrow="ALWAYS"
+                   minWidth="0.0" maxWidth="Infinity" wrapText="true"/>
             <Button text="%identity.copy" onAction="#onCopyAddress" styleClass="accent-button" mnemonicParsing="false"/>
         </HBox>
         <Label text="%identity.node_local" styleClass="muted-text"/>

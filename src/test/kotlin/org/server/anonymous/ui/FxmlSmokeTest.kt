@@ -22,6 +22,7 @@ import org.server.anonymous.controller.AddContactDialogController
 import org.server.anonymous.controller.AddContactViewModel
 import org.server.anonymous.controller.ChatController
 import org.server.anonymous.controller.ChatViewModel
+import org.server.anonymous.controller.EmojiPickerController
 import org.server.anonymous.controller.FakeNodeStatusSource
 import org.server.anonymous.controller.IdentityController
 import org.server.anonymous.controller.IdentityViewModel
@@ -223,5 +224,13 @@ class FxmlSmokeTest {
             val name = FXMLLoader(MainController::class.java.getResource("name-dialog.fxml"), bundle)
             name.controllerFactory = Callback { NameDialogController("hint") }
             assertNotNull(name.load<DialogPane>())
+        }
+
+    @Test
+    fun `emoji picker loads`() =
+        JavaFxTestSupport.onFxThread {
+            val loader = FXMLLoader(MainController::class.java.getResource("emoji-picker.fxml"), bundle)
+            loader.controllerFactory = Callback { EmojiPickerController { } }
+            assertNotNull(loader.load<Node>())
         }
 }

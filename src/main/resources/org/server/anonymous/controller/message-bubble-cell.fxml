@@ -8,7 +8,7 @@
     <VBox spacing="2.0">
         <Label fx:id="bodyLabel" wrapText="true" styleClass="bubble-text"/>
         <Label fx:id="metaLabel" styleClass="bubble-meta" maxWidth="Infinity" alignment="CENTER_RIGHT"/>
-        <Button fx:id="joinButton" text="%rooms.join" onAction="#onJoinClicked"
+        <Button fx:id="joinButton" text="%room.join.accept" onAction="#onJoinClicked"
                 styleClass="ghost-button" mnemonicParsing="false" visible="false" managed="false"/>
     </VBox>
 </HBox>

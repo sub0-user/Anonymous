@@ -1,5 +1,6 @@
 package org.server.anonymous.controller
 
+import javafx.scene.input.Clipboard
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -55,5 +56,16 @@ class MessageBubbleCellTest {
             cell.render(item(MessageDirection.IN, "inv4p:xyz"))
             cell.joinButton.fire()
             assertEquals("inv4p:xyz", captured)
+        }
+
+    @Test
+    fun `copy menu copies the message body`() =
+        JavaFxTestSupport.onFxThread {
+            val cell = MessageBubbleCell()
+            cell.render(item(MessageDirection.IN, "hello world"))
+            val menu = cell.contextMenu
+            val copyItem = menu.items[0]
+            copyItem.fire()
+            assertEquals("hello world", Clipboard.getSystemClipboard().getString())
         }
 }
