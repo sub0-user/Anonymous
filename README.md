@@ -18,7 +18,7 @@ Tor binary — one self-contained app, nothing to install or configure.
 
 ## Demo
 
-<video src="https://github.com/sub0-user/Anonymous/raw/main/video/demo.mp4" controls="true" allowfullscreen="true"></video>
+<video src="https://github.com/sub0-user/Anonymous/raw/main/video/demo.mp4" type="video/mp4" controls="true" allowfullscreen="true"></video>
 
 > Can't see the player? [Download or watch the demo video](video/demo.mp4).
 
