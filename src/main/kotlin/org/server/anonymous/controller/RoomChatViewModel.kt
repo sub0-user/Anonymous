@@ -42,8 +42,14 @@ class RoomChatViewModel(
         sync()
     }
 
-    /** Every contact can be invited — being a contact already implies trust. */
-    fun contactsForInvite(): List<Contact> = contacts()
+    /** Every contact can be added — being a contact already implies trust. */
+    fun contactsForInvite(): List<Contact> {
+        val memberKeys = members().map { it.publicKey }
+        return contacts().filter { contact ->
+            val key = contact.peerPublicKey
+            key == null || memberKeys.none { it.contentEquals(key) }
+        }
+    }
 
     fun members(): List<RoomMember> = currentRoom()?.members ?: emptyList()
 
@@ -70,10 +76,12 @@ class RoomChatViewModel(
 
     /**
      * Creates the invite for a contact. A contact we have never talked to has no cached key,
-     * so exchange one first via a session handshake (off the FX thread, from the invite dialog);
-     * contacts we have talked to are invited instantly with their cached key.
+     * so exchange one first via a session handshake (off the FX thread, from the add dialog);
+     * contacts we have talked to are added instantly with their cached key. Creating the
+     * invite is purely local — the room service is never re-published, so this cannot fail
+     * on the network.
      */
-    fun copyInvite(
+    fun addMember(
         contact: Contact,
         memberName: String,
         expiryDays: Long?,
@@ -102,7 +110,7 @@ class RoomChatViewModel(
     }
 
     /**
-     * Delivers the invite as a 1:1 chat message so the invitee can tap "Join room" —
+     * Delivers the invite as a 1:1 chat message so the invitee can tap "Accept" —
      * rides the offline outbox, so the invite arrives even if they are not online right now.
      */
     fun sendInvite(

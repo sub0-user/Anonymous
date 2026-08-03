@@ -26,7 +26,6 @@ class RoomMessenger(
     private val store: RoomStore,
     private val identity: () -> Identity,
     private val sender: (String, ByteArray?, Byte, ByteArray) -> Boolean,
-    private val clientAuthInstaller: OnionClientAuth? = null,
     /** Encrypted at-rest history (Phase A1); null keeps the in-memory-only behavior for tests. */
     private val roomHistory: MessageJournal<RoomMessageItem>? = null,
     /** How often undelivered room fan-out is retried (Phase A2); short in tests, 30s in the app. */
@@ -207,7 +206,6 @@ class RoomMessenger(
             runCatching { RoomKeyWrap.unwrap(invite.wrappedRoomKey, wrapKey, invite.roomId) }.getOrElse {
                 return OpResult.Failure("Could not open the room key — is this invite for you?")
             }
-        clientAuthInstaller?.install(invite.serviceAddress, invite.clientAuthPrivate)
         val record =
             RoomRecord(
                 id = invite.roomId,

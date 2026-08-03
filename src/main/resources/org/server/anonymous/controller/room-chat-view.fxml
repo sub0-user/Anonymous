@@ -15,7 +15,7 @@
                     <Label fx:id="titleLabel" styleClass="chat-title"/>
                     <Label fx:id="subtitleLabel" styleClass="status-text" wrapText="true"/>
                 </VBox>
-                <Button fx:id="inviteButton" text="%room.invite" onAction="#onInviteClicked"
+                <Button fx:id="inviteButton" text="%room.add_member" onAction="#onAddMemberClicked"
                         styleClass="ghost-button" mnemonicParsing="false"/>
                 <Button fx:id="membersButton" text="%room.members" onAction="#onMembersClicked"
                         styleClass="ghost-button" mnemonicParsing="false"/>

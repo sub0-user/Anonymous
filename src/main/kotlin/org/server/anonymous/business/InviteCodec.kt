@@ -3,8 +3,10 @@ package org.server.anonymous.business
 import java.util.Base64
 
 /**
- * Room invites (Phase 4) — the opaque copy-pasteable strings that carry entry credentials.
- * - Private: the client-auth private half (transport entry) + the member's wrapped room key.
+ * Room invites — the opaque strings carried by 1:1 chat messages that let an invited
+ * contact join a room.
+ * - Private: the member's wrapped room key (membership is enforced at the app layer; the
+ *   room service itself has no transport client auth).
  * - Public: the shared entry key; the wrapped room key is fetched from the founder at join.
  * Private invites are single-use by default and may carry an expiry epoch (host-enforced).
  */
@@ -25,7 +27,6 @@ data class PrivateRoomInvite(
     override val roomId: Long,
     override val serviceAddress: String,
     override val founderAddress: String,
-    val clientAuthPrivate: ByteArray,
     val wrappedRoomKey: ByteArray,
     override val founderPublicKey: ByteArray,
     val expiryEpochSeconds: Long? = null,
@@ -64,8 +65,8 @@ object InviteCodec {
     fun decode(text: String): RoomInvite {
         val parts = text.trim().split(":")
         return when {
+            parts.size == 7 && parts[0] == PRIVATE_PREFIX && parts[1] == VERSION -> decodePrivate(parts)
             parts.size == 8 && parts[0] == PRIVATE_PREFIX && parts[1] == VERSION -> decodePrivate(parts)
-            parts.size == 9 && parts[0] == PRIVATE_PREFIX && parts[1] == VERSION -> decodePrivate(parts)
             parts.size == 7 && parts[0] == PUBLIC_PREFIX && parts[1] == VERSION -> decodePublic(parts)
             else -> invalid()
         }
@@ -75,10 +76,8 @@ object InviteCodec {
         checkValidAddresses(invite.serviceAddress, invite.founderAddress)
         check(invite.founderPublicKey.size == 32) { "invalid founder key" }
         when (invite) {
-            is PrivateRoomInvite -> {
-                check(invite.clientAuthPrivate.size == 32) { "invalid client-auth key length" }
+            is PrivateRoomInvite ->
                 check(invite.wrappedRoomKey.size > RoomKeyWrap.NONCE_LENGTH) { "invalid wrapped room key" }
-            }
             is PublicRoomInvite -> check(EntryKey.isValid(invite.entryKey)) { "invalid entry key" }
         }
     }
@@ -89,7 +88,6 @@ object InviteCodec {
                 PRIVATE_PREFIX,
                 VERSION,
                 invite.serviceAddress,
-                urlEncoder.encodeToString(invite.clientAuthPrivate),
                 urlEncoder.encodeToString(invite.wrappedRoomKey),
                 roomIdHex(invite.roomId),
                 invite.founderAddress,
@@ -112,17 +110,15 @@ object InviteCodec {
 
     private fun decodePrivate(parts: List<String>): PrivateRoomInvite {
         val serviceAddress = parts[2]
-        val authPrivate = decodeUrl(parts[3])
-        val wrapped = decodeUrl(parts[4])
-        val roomId = parseRoomId(parts[5])
-        val founderAddress = parts[6]
-        val founderPublicKey = decodeUrl(parts[7])
-        val expiry = parts.getOrNull(8)?.toLongOrNull() ?: if (parts.size == 9) invalid() else null
-        check(authPrivate.size == 32) { "invalid client-auth key length" }
+        val wrapped = decodeUrl(parts[3])
+        val roomId = parseRoomId(parts[4])
+        val founderAddress = parts[5]
+        val founderPublicKey = decodeUrl(parts[6])
+        val expiry = parts.getOrNull(7)?.toLongOrNull() ?: if (parts.size == 8) invalid() else null
         check(wrapped.size > RoomKeyWrap.NONCE_LENGTH) { "invalid wrapped room key" }
         check(founderPublicKey.size == 32) { "invalid founder key" }
         checkValidAddresses(serviceAddress, founderAddress)
-        return PrivateRoomInvite(roomId, serviceAddress, founderAddress, authPrivate, wrapped, founderPublicKey, expiry)
+        return PrivateRoomInvite(roomId, serviceAddress, founderAddress, wrapped, founderPublicKey, expiry)
     }
 
     private fun decodePublic(parts: List<String>): PublicRoomInvite {

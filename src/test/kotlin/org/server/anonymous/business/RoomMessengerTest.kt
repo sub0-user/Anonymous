@@ -41,14 +41,6 @@ class RoomMessengerTest {
             targetPort: Int,
         ): String = "a".repeat(56) + ".onion"
 
-        override fun addOnionServiceWithClientAuth(
-            seed: ByteArray,
-            virtualPort: Int,
-            targetHost: String,
-            targetPort: Int,
-            clientAuthBlobs: List<String>,
-        ): String = "a".repeat(56) + ".onion"
-
         override fun deleteOnionService(address: String) = Unit
 
         override fun signalHup() {
@@ -62,7 +54,6 @@ class RoomMessengerTest {
         val messenger: RoomMessenger,
         val store: RoomStore,
         val sender: MutableList<Triple<String, Byte, ByteArray>>,
-        val authDir: Path,
         val tor: FakeTorControl,
     )
 
@@ -70,16 +61,14 @@ class RoomMessengerTest {
 
     private fun fixture(): Fixture {
         val storeDir = newDir()
-        val authDir = newDir()
         val tor = FakeTorControl()
         val sent = mutableListOf<Triple<String, Byte, ByteArray>>()
-        val installer = OnionClientAuth({ authDir }, { tor })
         val messenger =
             RoomMessenger(RoomStore(storeDir), { identity }, { address, _, type, body ->
                 sent += Triple(address, type, body)
                 true
-            }, installer)
-        return Fixture(messenger, RoomStore(storeDir), sent, authDir, tor)
+            })
+        return Fixture(messenger, RoomStore(storeDir), sent, tor)
     }
 
     private fun memberRecord(
@@ -111,7 +100,6 @@ class RoomMessengerTest {
                 roomId = roomId,
                 serviceAddress = serviceAddress,
                 founderAddress = founderAddress,
-                clientAuthPrivate = ByteArray(32) { 9 },
                 wrappedRoomKey = wrapped,
                 founderPublicKey = founderKeys.publicKey,
             ),
@@ -119,7 +107,7 @@ class RoomMessengerTest {
     }
 
     @Test
-    fun `accepting a private invite unwraps the room key and installs client auth`() {
+    fun `accepting a private invite unwraps the room key without client auth`() {
         val fx = fixture()
         val result = fx.messenger.acceptInvite(privateInviteText(), "me")
         assertTrue(result is OpResult.Success)
@@ -129,11 +117,8 @@ class RoomMessengerTest {
         assertArrayEquals(roomKey, record.roomKey)
         assertArrayEquals(founderKeys.publicKey, record.founderPublicKey)
         assertEquals(1, record.members.size)
-        // The client-auth key file landed in Tor's ClientOnionAuthDir and Tor was reloaded.
-        val file = fx.authDir.resolve(serviceAddress.removeSuffix(".onion") + ".auth_private")
-        assertTrue(Files.exists(file))
-        assertArrayEquals(ByteArray(32) { 9 }, ClientAuthBlob.parseAuthPrivateFile(Files.readString(file)))
-        assertEquals(1, fx.tor.hupCount)
+        // Membership is app-layer — no client-auth file is installed and Tor is not reloaded.
+        assertEquals(0, fx.tor.hupCount)
     }
 
     @Test

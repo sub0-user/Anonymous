@@ -128,7 +128,6 @@ object DataBackup {
             props.setProperty("${m}publicKey", encode(member.publicKey))
             props.setProperty("${m}name", member.name)
             props.setProperty("${m}status", member.status.name)
-            member.clientAuthPrivate?.let { props.setProperty("${m}clientAuthPrivate", encode(it)) }
             member.wrappedRoomKey?.let { props.setProperty("${m}wrappedRoomKey", encode(it)) }
             member.address?.let { props.setProperty("${m}address", it) }
             member.inviteExpiryEpochSeconds?.let { props.setProperty("${m}inviteExpiry", it.toString()) }
@@ -211,7 +210,6 @@ object DataBackup {
                 publicKey = publicKey,
                 name = name,
                 status = status,
-                clientAuthPrivate = b64OrNull(props, "${m}clientAuthPrivate"),
                 wrappedRoomKey = b64OrNull(props, "${m}wrappedRoomKey"),
                 address = props.getProperty("${m}address"),
                 inviteExpiryEpochSeconds = props.getProperty("${m}inviteExpiry")?.toLongOrNull(),

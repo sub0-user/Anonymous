@@ -135,14 +135,8 @@ class RoomIntegrationTest {
         val storeA = RoomStore(founder.tempDir.resolve("rooms"))
         val storeB = RoomStore(member.tempDir.resolve("rooms"))
         val host = roomHost(storeA, founder, senderA)
-        val messengerA = roomMessenger(storeA, founder, senderA, null)
-        val messengerB =
-            roomMessenger(
-                storeB,
-                member,
-                senderB,
-                OnionClientAuth({ member.process.clientAuthDir() }, { member.control }),
-            )
+        val messengerA = roomMessenger(storeA, founder, senderA)
+        val messengerB = roomMessenger(storeB, member, senderB)
         val serviceA = identityService(ContactBook(), founder, messengerA)
         val serviceB = identityService(ContactBook(), member, messengerB)
         serviceA.startListener()
@@ -168,13 +162,11 @@ class RoomIntegrationTest {
         store: RoomStore,
         node: NodeFixture,
         sender: TorSender,
-        clientAuthInstaller: OnionClientAuth?,
     ): RoomMessenger =
         RoomMessenger(
             store,
             { node.identity },
             sender = { target, key, type, body -> sender.send(target, key, type, body) },
-            clientAuthInstaller = clientAuthInstaller,
         )
 
     private fun identityService(

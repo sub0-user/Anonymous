@@ -8,15 +8,16 @@ import java.net.ServerSocket
 import java.net.Socket
 import java.security.MessageDigest
 import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
 
 /**
  * The founder side of rooms (Phase 4): creates and hosts room onion services, manages
- * client-auth entries (private) and entry keys (public), handles JOIN/LEAVE, and enforces
- * kicks by rotating the room key and re-wrapping it for the remaining members. One shared
- * listener socket receives every room service's connections; the room id in the first
- * control frame dispatches them. Control payloads ride the connection session keys, never
- * the room key.
+ * membership and entry keys (public), handles JOIN/LEAVE, and enforces kicks by rotating
+ * the room key and re-wrapping it for the remaining members. Membership is enforced at
+ * the application layer — the room service has no transport client auth, so membership
+ * changes never re-publish the service (an invite is instant and cannot fail on publish).
+ * One shared listener socket receives every room service's connections; the room id in
+ * the first control frame dispatches them. Control payloads ride the connection session
+ * keys, never the room key.
  *
  * @Suppress TooManyFunctions, ReturnCount: one cohesive lifecycle; splitting it would scatter
  * the room state transitions, and the early returns are validation guards on every operation.
@@ -94,8 +95,9 @@ class RoomHost(
     }
 
     /**
-     * Creates an invite for an existing contact (private: per-member client-auth key + wrapped
-     * room key; public: the shared entry key). Returns the opaque invite string.
+     * Creates an invite for an existing contact (private: member's wrapped room key; public:
+     * the shared entry key). Purely local — nothing is published, so this cannot fail on the
+     * network. Returns the opaque invite string.
      */
     fun createInvite(
         roomId: Long,
@@ -164,17 +166,15 @@ class RoomHost(
         val member = record.members.firstOrNull { it.publicKey.contentEquals(memberKey) } ?: return false
         val updated = record.copy(members = record.members - member)
         store.save(updated)
-        val republished = runCatching { refreshClientAuth(updated) }.isSuccess
-        if (!republished) return false
         broadcastMemberList(updated)
         return true
     }
 
     /**
-     * Kicks a member: revokes their client-auth entry (private), rotates the room key so the
-     * removed member can no longer decrypt, re-wraps for the remaining members, and notifies
-     * the kicked member. Public rooms rotate the key too (re-join with the entry key remains
-     * possible — that is the public-room tradeoff).
+     * Kicks a member: marks them kicked, rotates the room key so the removed member can no
+     * longer decrypt, re-wraps for the remaining members, and notifies the kicked member.
+     * Public rooms rotate the key too (re-join with the entry key remains possible — that is
+     * the public-room tradeoff).
      */
     fun kickMember(
         roomId: Long,
@@ -192,8 +192,6 @@ class RoomHost(
                     },
             )
         store.save(updated)
-        val revoked = runCatching { refreshClientAuth(updated) }.isSuccess
-        if (!revoked) return false
         rotateRoomKey(updated, excludeKey = memberKey)
         sendControl(updated, member, RoomControls.OP_KICK, ByteArray(0))
         broadcastMemberList(updated)
@@ -244,7 +242,6 @@ class RoomHost(
         display: String,
         expiryEpochSeconds: Long?,
     ): OpResult<String> {
-        val pair = ClientAuthBlob.createKeyPair()
         val wrapKey = RoomKeyWrap.wrapKey(staticKeys.privateKey, memberPublicKey, record.id)
         val wrapped = RoomKeyWrap.wrap(record.roomKey, wrapKey, record.id)
         val member =
@@ -252,25 +249,17 @@ class RoomHost(
                 publicKey = memberPublicKey,
                 name = display,
                 status = MemberStatus.INVITED,
-                clientAuthPrivate = pair.privateScalar,
                 wrappedRoomKey = wrapped,
                 address = memberAddress,
                 inviteExpiryEpochSeconds = expiryEpochSeconds,
             )
         val updated = record.copy(members = record.members + member)
         store.save(updated)
-        val republished = runCatching { refreshClientAuth(updated) }.isSuccess
-        if (!republished) {
-            // Roll back the pending invite so a re-publish failure never leaves a half-open door.
-            store.save(record)
-            return OpResult.Failure("Could not publish the room — try the invite again")
-        }
         val invite =
             PrivateRoomInvite(
                 roomId = record.id,
                 serviceAddress = record.serviceAddress,
                 founderAddress = founderAddress(),
-                clientAuthPrivate = pair.privateScalar,
                 wrappedRoomKey = wrapped,
                 founderPublicKey = staticKeys.publicKey,
                 expiryEpochSeconds = expiryEpochSeconds,
@@ -292,7 +281,6 @@ class RoomHost(
             if (expiry != null && expiry < System.currentTimeMillis() / 1000) {
                 val dropped = record.copy(members = record.members - existing)
                 store.save(dropped)
-                refreshClientAuth(dropped)
                 return false
             }
         }
@@ -431,60 +419,10 @@ class RoomHost(
         )
     }
 
-    /**
-     * Re-publishes a room service with the current client-auth list. Tor can stall on a
-     * loaded network and the control socket times out (15s), so retry the delete+re-add
-     * cycle with backoff: a transient stall must never turn an invite or kick into a
-     * thrown exception. The delete is best-effort — re-adding a service that was not
-     * actually deleted would collide, so a failed delete just retries the whole cycle.
-     * Publishing is millisecond-fast on a healthy node; the 45s cap (≈3 stalled attempts)
-     * bounds a bad moment so the dialog fails fast instead of hanging for minutes.
-     */
-    @Suppress("TooGenericExceptionCaught") // the retry swallows any control failure to keep publishing
-    private fun refreshClientAuth(record: RoomRecord) {
-        if (record.type != RoomType.PRIVATE || record.serviceAddress.isEmpty()) return
-        var lastError: Throwable? = null
-        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(45)
-        while (System.nanoTime() < deadline) {
-            try {
-                runCatching { torControl().deleteOnionService(record.serviceAddress) }
-                ensureRoomService(record)
-                return
-            } catch (t: Throwable) {
-                lastError = t
-                Thread.sleep(1000)
-            }
-        }
-        error("room service re-publish never succeeded: ${lastError?.message}")
-    }
-
+    /** Hosts a room's onion service (no client auth — membership is enforced at the app layer). */
     private fun ensureRoomService(record: RoomRecord): String {
-        val blobs =
-            if (record.type == RoomType.PRIVATE) {
-                record.members
-                    .filter { it.status != MemberStatus.KICKED }
-                    .mapNotNull { member ->
-                        member.clientAuthPrivate?.let { private ->
-                            ClientAuthBlob.torAddOnionBlob(
-                                ClientAuthKeyPair(private, IdentityKeys.x25519PublicKeyFromScalar(private)),
-                            )
-                        }
-                    }
-            } else {
-                emptyList()
-            }
         val address =
-            if (blobs.isEmpty()) {
-                torControl().addOnionService(record.serviceSeed, 80, "127.0.0.1", listenerPort())
-            } else {
-                torControl().addOnionServiceWithClientAuth(
-                    record.serviceSeed,
-                    80,
-                    "127.0.0.1",
-                    listenerPort(),
-                    blobs,
-                )
-            }
+            torControl().addOnionService(record.serviceSeed, 80, "127.0.0.1", listenerPort())
         if (record.serviceAddress.isNotEmpty() && address != record.serviceAddress) {
             error("room service address changed unexpectedly")
         }

@@ -20,13 +20,13 @@ import org.server.anonymous.business.TorControl
 import org.server.anonymous.business.model.Contact
 import org.server.anonymous.controller.AddContactDialogController
 import org.server.anonymous.controller.AddContactViewModel
+import org.server.anonymous.controller.AddMemberDialogController
 import org.server.anonymous.controller.ChatController
 import org.server.anonymous.controller.ChatViewModel
 import org.server.anonymous.controller.EmojiPickerController
 import org.server.anonymous.controller.FakeNodeStatusSource
 import org.server.anonymous.controller.IdentityController
 import org.server.anonymous.controller.IdentityViewModel
-import org.server.anonymous.controller.InviteDialogController
 import org.server.anonymous.controller.JoinRoomDialogController
 import org.server.anonymous.controller.JoinRoomViewModel
 import org.server.anonymous.controller.MainController
@@ -148,14 +148,6 @@ class FxmlSmokeTest {
             targetPort: Int,
         ): String = "a".repeat(56) + ".onion"
 
-        override fun addOnionServiceWithClientAuth(
-            seed: ByteArray,
-            virtualPort: Int,
-            targetHost: String,
-            targetPort: Int,
-            clientAuthBlobs: List<String>,
-        ): String = "a".repeat(56) + ".onion"
-
         override fun deleteOnionService(address: String) = Unit
 
         override fun signalHup() = Unit
@@ -165,7 +157,7 @@ class FxmlSmokeTest {
 
     private fun tempDir(): Path = Files.createTempDirectory("anonymous-fxml-room").also { it.toFile().deleteOnExit() }
 
-    private fun roomHost(): org.server.anonymous.business.RoomHost {
+    private fun roomHost(): RoomHost {
         val identity = IdentityService(tempDir()).getOrCreate()
         return RoomHost(
             RoomStore(tempDir()),
@@ -218,9 +210,9 @@ class FxmlSmokeTest {
             val members = FXMLLoader(MainController::class.java.getResource("members-dialog.fxml"), bundle)
             members.controllerFactory = Callback { MembersDialogController(viewModel) }
             assertNotNull(members.load<DialogPane>())
-            val invite = FXMLLoader(MainController::class.java.getResource("invite-dialog.fxml"), bundle)
-            invite.controllerFactory = Callback { InviteDialogController(viewModel) }
-            assertNotNull(invite.load<DialogPane>())
+            val addMember = FXMLLoader(MainController::class.java.getResource("add-member-dialog.fxml"), bundle)
+            addMember.controllerFactory = Callback { AddMemberDialogController(viewModel) }
+            assertNotNull(addMember.load<DialogPane>())
             val name = FXMLLoader(MainController::class.java.getResource("name-dialog.fxml"), bundle)
             name.controllerFactory = Callback { NameDialogController("hint") }
             assertNotNull(name.load<DialogPane>())

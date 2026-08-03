@@ -52,10 +52,6 @@ class AppGraph {
         TorSender({ torNodeManager.status() }, { identityKeys() })
     }
 
-    private val clientAuth: OnionClientAuth by lazy {
-        OnionClientAuth({ torNodeManager.clientAuthDir() }, connectedControl)
-    }
-
     val roomMessenger: RoomMessenger by lazy {
         RoomMessenger(
             roomStore,
@@ -63,7 +59,6 @@ class AppGraph {
             { address, key, type, body ->
                 torSender.send(address, key, type, body)
             },
-            clientAuthInstaller = clientAuth,
             roomHistory = roomHistory,
         )
     }

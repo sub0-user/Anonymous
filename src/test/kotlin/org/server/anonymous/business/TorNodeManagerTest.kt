@@ -19,8 +19,6 @@ class TorNodeManagerTest {
 
         override fun cookieFile(): Path = cookie
 
-        override fun clientAuthDir(): Path = cookie.parent.resolve("client-auth")
-
         override fun isRunning(): Boolean = true
 
         override fun stop() = Unit
@@ -46,17 +44,6 @@ class TorNodeManagerTest {
             virtualPort: Int,
             targetHost: String,
             targetPort: Int,
-        ): String {
-            addedSeeds += seed
-            return "a".repeat(56) + ".onion"
-        }
-
-        override fun addOnionServiceWithClientAuth(
-            seed: ByteArray,
-            virtualPort: Int,
-            targetHost: String,
-            targetPort: Int,
-            clientAuthBlobs: List<String>,
         ): String {
             addedSeeds += seed
             return "a".repeat(56) + ".onion"
@@ -113,8 +100,6 @@ class TorNodeManagerTest {
 
                     override fun cookieFile(): Path = dir.resolve("cookie")
 
-                    override fun clientAuthDir(): Path = dir.resolve("client-auth")
-
                     override fun isRunning(): Boolean = true
 
                     override fun stop() = Unit
@@ -149,8 +134,6 @@ class TorNodeManagerTest {
 
                 override fun cookieFile(): Path = cookie
 
-                override fun clientAuthDir(): Path = cookie.parent.resolve("client-auth")
-
                 override fun isRunning(): Boolean = spawnCount.get() >= 2
 
                 override fun stop() = Unit
@@ -184,8 +167,6 @@ class TorNodeManagerTest {
                 }
 
                 override fun cookieFile(): Path = cookie
-
-                override fun clientAuthDir(): Path = cookie.parent.resolve("client-auth")
 
                 // The tor "dies" when alive flips; a recovery re-spawns a healthy process.
                 override fun isRunning(): Boolean = alive.get() || spawnCount.get() >= 2

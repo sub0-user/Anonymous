@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.ButtonType?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.DialogPane?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.VBox?>
+<DialogPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="org.server.anonymous.controller.AddMemberDialogController" prefWidth="420.0" styleClass="dialog-pane">
+    <content>
+        <VBox spacing="10.0">
+            <VBox spacing="4.0">
+                <Label text="%room.add.contact" styleClass="label-caption"/>
+                <ComboBox fx:id="contactBox" styleClass="search-field"/>
+            </VBox>
+            <VBox spacing="4.0">
+                <Label text="%room.add.name" styleClass="label-caption"/>
+                <TextField fx:id="nameField" promptText="%room.add.name.prompt" styleClass="search-field"/>
+            </VBox>
+            <Label fx:id="busyLabel" text="%room.add.key_exchange" styleClass="status-text" visible="false" managed="false"/>
+            <Label fx:id="feedbackLabel" styleClass="error-text" wrapText="true"/>
+        </VBox>
+    </content>
+    <buttonTypes>
+        <ButtonType fx:constant="CANCEL"/>
+    </buttonTypes>
+</DialogPane>

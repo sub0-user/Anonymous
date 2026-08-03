@@ -130,9 +130,6 @@ class TorNodeManager(
     val controlClient: TorControl?
         get() = control
 
-    /** Tor's ClientOnionAuthDir — joined room services' `.auth_private` files live here. */
-    fun clientAuthDir(): java.nio.file.Path = torProcess.clientAuthDir()
-
     fun stop() {
         started = false
         watchdogExecutor.shutdownNow()

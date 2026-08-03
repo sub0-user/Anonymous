@@ -12,7 +12,6 @@ import org.server.anonymous.business.model.RoomType
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Instant
-import java.util.Base64
 
 class RoomHostTest {
     private val address = "a".repeat(56) + ".onion"
@@ -39,17 +38,6 @@ class RoomHostTest {
             targetPort: Int,
         ): String {
             addedBlobs.add(emptyList())
-            return "a".repeat(56) + ".onion"
-        }
-
-        override fun addOnionServiceWithClientAuth(
-            seed: ByteArray,
-            virtualPort: Int,
-            targetHost: String,
-            targetPort: Int,
-            clientAuthBlobs: List<String>,
-        ): String {
-            addedBlobs.add(clientAuthBlobs)
             return "a".repeat(56) + ".onion"
         }
 
@@ -107,16 +95,6 @@ class RoomHostTest {
 
     private fun memberAddress(): String = "b".repeat(56) + ".onion"
 
-    /** True when a ClientAuth blob's private half belongs to the given member key. */
-    private fun isAuthFor(
-        blob: String,
-        memberKey: ByteArray,
-    ): Boolean {
-        val decoded = Base64.getDecoder().decode(blob)
-        val privateHalf = decoded.copyOfRange(32, 64)
-        return privateHalf.contentEquals(memberKey)
-    }
-
     @Test
     fun `create private room persists and hosts the service`() {
         val fx = fixture()
@@ -154,29 +132,22 @@ class RoomHostTest {
     }
 
     @Test
-    fun `private invite carries auth key and a key that unwraps the room key`() {
+    fun `private invite wraps the room key and never re-publishes the service`() {
         val fx = fixture()
         val room = createdRoom(fx)
         val member = memberPair()
+        val publishesBefore = fx.tor.addedBlobs.size
         val result = fx.host.createInvite(room.id, memberAddress(), member.publicKey, "neo", null)
         assertTrue(result is OpResult.Success)
         val invite = InviteCodec.decode((result as OpResult.Success).value) as PrivateRoomInvite
-        // The invite's private half is what gets registered on the service (via its public half).
-        val invitePublic = IdentityKeys.x25519PublicKeyFromScalar(invite.clientAuthPrivate)
         val wrapKey = RoomKeyWrap.wrapKey(myKeys.privateKey, member.publicKey, room.id)
         assertArrayEquals(room.roomKey, RoomKeyWrap.unwrap(invite.wrappedRoomKey, wrapKey, room.id))
 
         val saved = fx.store().loadAll().first()
         assertEquals(MemberStatus.INVITED, saved.members[1].status)
-        // The new member's client-auth blob is registered on the service.
-        val blob =
-            fx.tor
-                .addedBlobs
-                .last()
-                .single()
-        val decoded = Base64.getDecoder().decode(blob)
-        assertArrayEquals(invitePublic, decoded.copyOfRange(0, 32))
-        assertArrayEquals(invite.clientAuthPrivate, decoded.copyOfRange(32, 64))
+        // Membership is app-layer: the invite changes the record only — no ADD_ONION/DEL_ONION.
+        assertEquals(publishesBefore, fx.tor.addedBlobs.size)
+        assertEquals(0, fx.tor.deletedCount)
     }
 
     @Test
@@ -229,12 +200,10 @@ class RoomHostTest {
         val member = memberPair()
         val past = Instant.now().epochSecond - 1000
         fx.host.createInvite(room.id, memberAddress(), member.publicKey, "neo", past)
-        val deletedBefore = fx.tor.deletedCount
 
         assertFalse(fx.host.handleJoin(room.id, member.publicKey, memberAddress(), "neo", null))
         val stored = fx.store().loadAll().first()
         assertTrue(stored.members.none { it.publicKey.contentEquals(member.publicKey) })
-        assertTrue(fx.tor.deletedCount > deletedBefore) // auth entry revoked
     }
 
     @Test
@@ -268,7 +237,7 @@ class RoomHostTest {
         val invite = InviteCodec.decode((inviteResult as OpResult.Success).value) as PrivateRoomInvite
         assertTrue(fx.host.handleJoin(room.id, member.publicKey, memberAddress(), "neo", null))
         val oldWrapKey = RoomKeyWrap.wrapKey(myKeys.privateKey, member.publicKey, room.id)
-        val blobsBefore = fx.tor.addedBlobs.size
+        val publishesBefore = fx.tor.addedBlobs.size
         fx.sender.sent.clear()
 
         assertTrue(fx.host.kickMember(room.id, member.publicKey))
@@ -284,16 +253,11 @@ class RoomHostTest {
         val myWrap = stored.members.first { it.publicKey.contentEquals(myKeys.publicKey) }.wrappedRoomKey!!
         val myWrapKey = RoomKeyWrap.wrapKey(myKeys.privateKey, myKeys.publicKey, room.id)
         assertArrayEquals(stored.roomKey, RoomKeyWrap.unwrap(myWrap, myWrapKey, room.id))
-        // The kicked member gets a KICK notice and their auth entry is revoked.
+        // The kicked member gets a KICK notice; membership is app-layer so the service is
+        // not re-published (the kicked key is rejected at join and can no longer decrypt).
         val ops = fx.sender.sent.map { RoomControls.decode(it.second).op }
         assertTrue(RoomControls.OP_KICK in ops)
-        assertTrue(fx.tor.addedBlobs.size > blobsBefore)
-        val kickedBlobGone =
-            fx.tor
-                .addedBlobs
-                .last()
-                .none { blob -> isAuthFor(blob, member.publicKey) }
-        assertTrue(kickedBlobGone)
+        assertEquals(publishesBefore, fx.tor.addedBlobs.size)
     }
 
     @Test
@@ -325,18 +289,17 @@ class RoomHostTest {
     }
 
     @Test
-    fun `leave removes the member and refreshes auth`() {
+    fun `leave removes the member without touching the service`() {
         val fx = fixture()
         val room = createdRoom(fx)
         val member = memberPair()
         fx.host.createInvite(room.id, memberAddress(), member.publicKey, "neo", null)
         assertTrue(fx.host.handleJoin(room.id, member.publicKey, memberAddress(), "neo", null))
-        val deletedBefore = fx.tor.deletedCount
 
         assertTrue(fx.host.handleLeave(room.id, member.publicKey))
         val stored = fx.store().loadAll().first()
         assertTrue(stored.members.none { it.publicKey.contentEquals(member.publicKey) })
-        assertTrue(fx.tor.deletedCount > deletedBefore)
+        assertEquals(0, fx.tor.deletedCount)
     }
 
     @Test

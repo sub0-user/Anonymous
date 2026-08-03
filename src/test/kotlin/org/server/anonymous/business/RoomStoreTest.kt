@@ -24,7 +24,6 @@ class RoomStoreTest {
                 publicKey = seed(12),
                 name = "neo",
                 status = MemberStatus.INVITED,
-                clientAuthPrivate = seed(21),
                 wrappedRoomKey = ByteArray(28) { 22 },
                 address = "b".repeat(56) + ".onion",
                 inviteExpiryEpochSeconds = 1_752_000_000L,
@@ -144,11 +143,6 @@ class RoomStoreTest {
             assertArrayEquals(a.publicKey, b.publicKey)
             assertEquals(a.name, b.name)
             assertEquals(a.status, b.status)
-            if (a.clientAuthPrivate == null) {
-                assertEquals(null, b.clientAuthPrivate)
-            } else {
-                assertArrayEquals(a.clientAuthPrivate, b.clientAuthPrivate)
-            }
             if (a.wrappedRoomKey == null) {
                 assertEquals(null, b.wrappedRoomKey)
             } else {

@@ -50,7 +50,6 @@ class RoomStore(
                     setProperty("member.$index.pub", b64(member.publicKey))
                     setProperty("member.$index.name", member.name)
                     setProperty("member.$index.status", member.status.name)
-                    member.clientAuthPrivate?.let { setProperty("member.$index.authPriv", b64(it)) }
                     member.wrappedRoomKey?.let { setProperty("member.$index.wrappedKey", b64(it)) }
                     member.address?.let { setProperty("member.$index.address", it) }
                     member.inviteExpiryEpochSeconds?.let {
@@ -88,7 +87,6 @@ class RoomStore(
                     publicKey = decode(props.required("member.$index.pub")),
                     name = props.required("member.$index.name"),
                     status = MemberStatus.valueOf(props.required("member.$index.status")),
-                    clientAuthPrivate = props.getProperty("member.$index.authPriv")?.let(::decode),
                     wrappedRoomKey = props.getProperty("member.$index.wrappedKey")?.let(::decode),
                     address = props.getProperty("member.$index.address"),
                     inviteExpiryEpochSeconds = props.getProperty("member.$index.inviteExpiry")?.toLong(),

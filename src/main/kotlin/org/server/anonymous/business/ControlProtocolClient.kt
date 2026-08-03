@@ -15,7 +15,7 @@ import java.util.Base64
  * "650 " lines are async events and are skipped.
  *
  * Thread-safety (Phase B2): the app shares ONE connected client between the node manager
- * (watchdog/startup), RoomHost (room services) and OnionClientAuth (SIGNAL HUP), so every
+ * (watchdog/startup) and RoomHost (room services), so every
  * socket-touching method is @Synchronized — two threads can never interleave a command on
  * the same connection.
  *
@@ -65,26 +65,9 @@ class ControlProtocolClient : TorControl {
         virtualPort: Int,
         targetHost: String,
         targetPort: Int,
-    ): String = addOnion(seed, virtualPort, targetHost, targetPort, emptyList())
-
-    override fun addOnionServiceWithClientAuth(
-        seed: ByteArray,
-        virtualPort: Int,
-        targetHost: String,
-        targetPort: Int,
-        clientAuthBlobs: List<String>,
-    ): String = addOnion(seed, virtualPort, targetHost, targetPort, clientAuthBlobs)
-
-    private fun addOnion(
-        seed: ByteArray,
-        virtualPort: Int,
-        targetHost: String,
-        targetPort: Int,
-        clientAuthBlobs: List<String>,
     ): String {
         val key = Base64.getEncoder().encodeToString(torKeyBlob(seed))
-        val auth = clientAuthBlobs.joinToString(" ") { "ClientAuth=$it" }
-        val command = "ADD_ONION ED25519-V3:$key Port=$virtualPort,$targetHost:$targetPort $auth".trim()
+        val command = "ADD_ONION ED25519-V3:$key Port=$virtualPort,$targetHost:$targetPort"
         val reply = sendCommand(command)
         val serviceId =
             Regex("ServiceID=([a-z2-7]{56})").find(reply)?.groupValues?.get(1)

@@ -11,9 +11,6 @@ interface TorProcess {
 
     fun cookieFile(): Path
 
-    /** Directory where joined room services' `.auth_private` files live (reloaded via HUP). */
-    fun clientAuthDir(): Path
-
     /** True while the spawned tor is alive; a tor that dies mid-startup is the classic stale-lock symptom. */
     fun isRunning(): Boolean
 
@@ -63,8 +60,6 @@ class TorProcessManager(
                 "127.0.0.1:$socksPort",
                 "--ClientOnly",
                 "1",
-                "--ClientOnionAuthDir",
-                root.resolve("client-auth").toString(),
                 "--Log",
                 "notice file ${dataDir.resolve("tor.log")}",
             )
@@ -79,12 +74,6 @@ class TorProcessManager(
     override fun cookieFile(): Path {
         val root = torRoot ?: error("Tor not started")
         return root.resolve("data/control_auth_cookie")
-    }
-
-    /** Directory where joined room services' `.auth_private` files live (reloaded via HUP). */
-    override fun clientAuthDir(): Path {
-        val root = torRoot ?: error("Tor not started")
-        return root.resolve("client-auth")
     }
 
     override fun isRunning(): Boolean = process?.isAlive == true

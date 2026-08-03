@@ -83,20 +83,20 @@ class RoomChatController(
     }
 
     @FXML
-    fun onInviteClicked() {
+    fun onAddMemberClicked() {
         val dialog = Dialog<String>()
-        val loader = FXMLLoader(RoomChatController::class.java.getResource("invite-dialog.fxml"), bundle)
-        loader.controllerFactory = Callback { InviteDialogController(viewModel) }
+        val loader = FXMLLoader(RoomChatController::class.java.getResource("add-member-dialog.fxml"), bundle)
+        loader.controllerFactory = Callback { AddMemberDialogController(viewModel) }
         dialog.dialogPane = loader.load()
         dialog.dialogPane.stylesheets.add(AnonymousApplication.stylesheet())
-        dialog.title = bundle.getString("room.invite")
-        val createType = ButtonType(bundle.getString("dialog.create"), ButtonBar.ButtonData.OK_DONE)
-        dialog.dialogPane.buttonTypes.add(createType)
-        val controller = loader.getController<InviteDialogController>()
-        val createButton = dialog.dialogPane.lookupButton(createType)
-        createButton.disableProperty().bind(controller.busy)
-        createButton.addEventFilter(ActionEvent.ACTION) { event ->
-            event.consume() // publishing the invite can take a minute — close only when it is done
+        dialog.title = bundle.getString("room.add_member")
+        val addType = ButtonType(bundle.getString("dialog.add"), ButtonBar.ButtonData.OK_DONE)
+        dialog.dialogPane.buttonTypes.add(addType)
+        val controller = loader.getController<AddMemberDialogController>()
+        val addButton = dialog.dialogPane.lookupButton(addType)
+        addButton.disableProperty().bind(controller.busy)
+        addButton.addEventFilter(ActionEvent.ACTION) { event ->
+            event.consume() // the key exchange can take a moment — close only when the invite is sent
             controller.createAsync {
                 if (controller.createdInvite != null) {
                     dialog.setResult(controller.createdInvite)
@@ -107,10 +107,13 @@ class RoomChatController(
         dialog.setResultConverter { controller.createdInvite }
         dialog.showAndWait()
         controller.outcome?.let { invite ->
-            val sent = bundle.getString("room.invite.sent").replace("{alias}", invite.contactAlias)
-            val copied = bundle.getString("room.invite.copy_only").replace("{alias}", invite.contactAlias)
             viewModel.inviteFeedback.set(
-                if (invite.delivered) sent else copied.replace("{reason}", invite.sendError ?: "?"),
+                if (invite.delivered) {
+                    bundle.getString("room.add.sent").replace("{alias}", invite.contactAlias)
+                } else {
+                    val failed = bundle.getString("room.add.failed")
+                    failed.replace("{alias}", invite.contactAlias).replace("{reason}", invite.sendError ?: "?")
+                },
             )
         }
     }

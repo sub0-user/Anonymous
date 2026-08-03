@@ -47,20 +47,20 @@ class RoomChatViewModelTest {
     }
 
     @Test
-    fun `copyInvite fails cleanly when the key exchange cannot reach the contact`() {
+    fun `addMember fails cleanly when the key exchange cannot reach the contact`() {
         // InMemoryMessageService cannot reach a real peer, so the probe fails and the
         // invite must not be created (the "Only the founder can invite" branch is never reached).
         val vm = RoomChatViewModel(messenger(), null, 0L, { listOf(contact) }, InMemoryMessageService())
-        val result = vm.copyInvite(contact, "neo", null)
+        val result = vm.addMember(contact, "neo", null)
         assertTrue(result is OpResult.Failure)
         assertFalse((result as OpResult.Failure).reason == "Only the founder can invite")
     }
 
     @Test
-    fun `copyInvite with a cached key skips the probe`() {
+    fun `addMember with a cached key skips the probe`() {
         val keyed = Contact(2, "bob", OnionAddress("y".repeat(56) + ".onion"), "now", ByteArray(32) { 1 })
         val vm = RoomChatViewModel(messenger(), null, 0L, { listOf(keyed) }, InMemoryMessageService())
-        val result = vm.copyInvite(keyed, "neo", null)
+        val result = vm.addMember(keyed, "neo", null)
         // No roomHost here, so this proves the probe was skipped (a probe would have
         // failed with "Key exchange not supported" first).
         assertEquals("Only the founder can invite", (result as OpResult.Failure).reason)

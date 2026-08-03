@@ -7,24 +7,24 @@ import javafx.scene.control.ComboBox
 import javafx.scene.control.Label
 import javafx.scene.control.ListCell
 import javafx.scene.control.TextField
-import javafx.scene.input.Clipboard
-import javafx.scene.input.ClipboardContent
 import org.server.anonymous.business.OpResult
 import org.server.anonymous.business.model.Contact
 import java.util.ResourceBundle
 import java.util.concurrent.Executors
 
-/** Invite dialog (founder): pick a contact, their room name, optional expiry, create + copy. */
-class InviteDialogController(
+/**
+ * Add-member dialog (founder): pick a contact — a contact is already trusted, so adding
+ * needs no consent — choose their room name, and the invite is sent to them as a 1:1 chat
+ * message they accept from there. There is no invite string to copy and nothing is
+ * published: creating the invite is local, so the only failure is the contact being
+ * offline when we need to exchange keys.
+ */
+class AddMemberDialogController(
     private val viewModel: RoomChatViewModel,
 ) {
     @FXML private lateinit var contactBox: ComboBox<Contact>
 
     @FXML private lateinit var nameField: TextField
-
-    @FXML private lateinit var expiryField: TextField
-
-    @FXML private lateinit var inviteLabel: Label
 
     @FXML private lateinit var feedbackLabel: Label
 
@@ -35,14 +35,14 @@ class InviteDialogController(
     /** Set when the invite was created; the dialog closes only then. */
     var createdInvite: String? = null
 
-    /** How the created invite was delivered (chat message vs clipboard-only); read after the dialog closes. */
+    /** How the created invite was delivered; read after the dialog closes. */
     var outcome: InviteOutcome? = null
 
-    /** True while the invite is being published (re-publish can take a minute) — Phase B3. */
+    /** True while the key exchange for a never-chatted contact runs. */
     val busy = SimpleBooleanProperty(false)
 
     private val executor =
-        Executors.newSingleThreadExecutor { r -> Thread(r, "invite-create").apply { isDaemon = true } }
+        Executors.newSingleThreadExecutor { r -> Thread(r, "add-member").apply { isDaemon = true } }
 
     @Suppress("UnusedPrivateMember") // invoked reflectively by FXML
     @FXML
@@ -51,13 +51,17 @@ class InviteDialogController(
         contactBox.items.setAll(contacts)
         contactBox.setCellFactory { contactCell() }
         contactBox.buttonCell = contactCell()
+        contactBox.selectionModel.selectedItemProperty().addListener { _, _, selected ->
+            if (selected != null && nameField.text.isBlank()) {
+                nameField.text = selected.alias
+            }
+        }
         if (contacts.isNotEmpty()) contactBox.selectionModel.select(0)
-        inviteLabel.text = ""
         busyLabel.visibleProperty().bind(busy)
         busyLabel.managedProperty().bind(busy)
         if (contacts.isEmpty()) {
-            // Explain the empty picker before the user even clicks Create.
-            feedbackLabel.text = bundle.getString("room.invite.no_contact")
+            // Explain the empty picker before the user even clicks Add.
+            feedbackLabel.text = bundle.getString("room.add.no_contact")
         }
     }
 
@@ -66,32 +70,30 @@ class InviteDialogController(
         feedbackLabel.text = ""
         val contact = contactBox.selectionModel.selectedItem
         if (contact == null) {
-            feedbackLabel.text = bundle.getString("room.invite.no_contact")
+            feedbackLabel.text = bundle.getString("room.add.no_contact")
             return
         }
-        val days = expiryField.text.trim().toLongOrNull()
-        when (val result = viewModel.copyInvite(contact, nameField.text, days)) {
+        when (val result = viewModel.addMember(contact, nameField.text, null)) {
             is OpResult.Failure -> feedbackLabel.text = result.reason
             is OpResult.Success -> completeInvite(result.value, contact)
         }
     }
 
     /**
-     * Creates the invite off the FX thread — re-publishing the room service can take a minute
-     * on a slow network and must never freeze the dialog. [onDone] runs on the FX thread.
+     * Creates the invite off the FX thread (the key exchange for a never-chatted contact is a
+     * session handshake and must never freeze the dialog). [onDone] runs on the FX thread.
      */
     fun createAsync(onDone: () -> Unit) {
         if (busy.get()) return
         feedbackLabel.text = ""
         val contact = contactBox.selectionModel.selectedItem
         if (contact == null) {
-            feedbackLabel.text = bundle.getString("room.invite.no_contact")
+            feedbackLabel.text = bundle.getString("room.add.no_contact")
             return
         }
-        val days = expiryField.text.trim().toLongOrNull()
         busy.set(true)
         executor.execute {
-            val result = viewModel.copyInvite(contact, nameField.text, days)
+            val result = viewModel.addMember(contact, nameField.text, null)
             Platform.runLater {
                 busy.set(false)
                 when (result) {
@@ -103,15 +105,12 @@ class InviteDialogController(
         }
     }
 
-    /** Invite created: show + copy it, then deliver it as a chat message to the contact. */
+    /** Invite created: deliver it as a chat message to the contact — no clipboard involved. */
     private fun completeInvite(
         invite: String,
         contact: Contact,
     ) {
         createdInvite = invite
-        inviteLabel.text = invite
-        val clipboard = Clipboard.getSystemClipboard()
-        clipboard.setContent(ClipboardContent().apply { putString(invite) })
         val sent = viewModel.sendInvite(contact, invite)
         outcome =
             InviteOutcome(
