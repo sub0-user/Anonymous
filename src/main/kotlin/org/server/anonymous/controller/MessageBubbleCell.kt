@@ -11,6 +11,7 @@ import javafx.scene.control.MenuItem
 import javafx.scene.input.Clipboard
 import javafx.scene.input.ClipboardContent
 import javafx.scene.layout.HBox
+import javafx.scene.text.TextFlow
 import org.server.anonymous.business.model.MessageDirection
 import org.server.anonymous.business.model.MessageItem
 import org.server.anonymous.business.model.MessageStatus
@@ -26,7 +27,7 @@ class MessageBubbleCell(
 ) : ListCell<MessageItem>() {
     @FXML private lateinit var bubble: HBox
 
-    @FXML private lateinit var bodyLabel: Label
+    @FXML private lateinit var bodyFlow: TextFlow
 
     @FXML private lateinit var metaLabel: Label
 
@@ -63,7 +64,7 @@ class MessageBubbleCell(
             return
         }
         currentBody = item.body
-        bodyLabel.text = item.body
+        bodyFlow.children.setAll(EmojiImages.nodesFor(item.body))
         metaLabel.text =
             when (item.direction) {
                 MessageDirection.IN -> item.sentAtLabel

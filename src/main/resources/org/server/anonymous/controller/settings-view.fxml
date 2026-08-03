@@ -4,6 +4,7 @@
 <?import javafx.scene.image.Image?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 <VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="org.server.anonymous.controller.SettingsController"
@@ -52,41 +53,49 @@
         <HBox spacing="8.0">
             <Button onAction="#onXClicked" styleClass="ghost-button" mnemonicParsing="false">
                 <graphic>
-                    <ImageView fitHeight="16.0" preserveRatio="true">
-                        <image>
-                            <Image url="@../logo/twitter.png"/>
-                        </image>
-                    </ImageView>
+                    <StackPane styleClass="icon-chip">
+                        <ImageView fitHeight="12.0" preserveRatio="true">
+                            <image>
+                                <Image url="@../logo/twitter.png"/>
+                            </image>
+                        </ImageView>
+                    </StackPane>
                 </graphic>
                 X / Twitter
             </Button>
             <Button onAction="#onGitHubClicked" styleClass="ghost-button" mnemonicParsing="false">
                 <graphic>
-                    <ImageView fitHeight="16.0" preserveRatio="true">
-                        <image>
-                            <Image url="@../logo/github.png"/>
-                        </image>
-                    </ImageView>
+                    <StackPane styleClass="icon-chip">
+                        <ImageView fitHeight="12.0" preserveRatio="true">
+                            <image>
+                                <Image url="@../logo/github.png"/>
+                            </image>
+                        </ImageView>
+                    </StackPane>
                 </graphic>
                 GitHub
             </Button>
             <Button onAction="#onYouTubeClicked" styleClass="ghost-button" mnemonicParsing="false">
                 <graphic>
-                    <ImageView fitHeight="16.0" preserveRatio="true">
-                        <image>
-                            <Image url="@../logo/youtube.png"/>
-                        </image>
-                    </ImageView>
+                    <StackPane styleClass="icon-chip">
+                        <ImageView fitHeight="12.0" preserveRatio="true">
+                            <image>
+                                <Image url="@../logo/youtube.png"/>
+                            </image>
+                        </ImageView>
+                    </StackPane>
                 </graphic>
                 YouTube
             </Button>
             <Button onAction="#onInstagramClicked" styleClass="ghost-button" mnemonicParsing="false">
                 <graphic>
-                    <ImageView fitHeight="16.0" preserveRatio="true">
-                        <image>
-                            <Image url="@../logo/instagram.png"/>
-                        </image>
-                    </ImageView>
+                    <StackPane styleClass="icon-chip">
+                        <ImageView fitHeight="12.0" preserveRatio="true">
+                            <image>
+                                <Image url="@../logo/instagram.png"/>
+                            </image>
+                        </ImageView>
+                    </StackPane>
                 </graphic>
                 Instagram
             </Button>
@@ -100,11 +109,13 @@
         <Button onAction="#onDonateClicked"
                 styleClass="accent-button" maxWidth="Infinity" mnemonicParsing="false">
             <graphic>
-                <ImageView fitHeight="16.0" preserveRatio="true">
-                    <image>
-                        <Image url="@../logo/donation.png"/>
-                    </image>
-                </ImageView>
+                <StackPane styleClass="icon-chip">
+                    <ImageView fitHeight="12.0" preserveRatio="true">
+                        <image>
+                            <Image url="@../logo/donation.png"/>
+                        </image>
+                    </ImageView>
+                </StackPane>
             </graphic>
             %settings.support.donate
         </Button>

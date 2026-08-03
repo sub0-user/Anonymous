@@ -10,6 +10,7 @@ import javafx.scene.control.MenuItem
 import javafx.scene.input.Clipboard
 import javafx.scene.input.ClipboardContent
 import javafx.scene.layout.HBox
+import javafx.scene.text.TextFlow
 import org.server.anonymous.business.model.RoomMessageItem
 import java.util.ResourceBundle
 
@@ -19,7 +20,7 @@ class RoomMessageCell(
 ) : ListCell<RoomMessageItem>() {
     @FXML private lateinit var bubble: HBox
 
-    @FXML private lateinit var bodyLabel: Label
+    @FXML private lateinit var bodyFlow: TextFlow
 
     @FXML private lateinit var metaLabel: Label
 
@@ -52,7 +53,7 @@ class RoomMessageCell(
             return
         }
         currentBody = item.body
-        bodyLabel.text = "${displayNameFor(item.senderPublicKey)}: ${item.body}"
+        bodyFlow.children.setAll(EmojiImages.nodesFor("${displayNameFor(item.senderPublicKey)}: ${item.body}"))
         metaLabel.text = item.timeLabel
         bubble.styleClass.removeAll("bubble-out", "bubble-in")
         bubble.styleClass.add(if (item.isOutgoing) "bubble-out" else "bubble-in")

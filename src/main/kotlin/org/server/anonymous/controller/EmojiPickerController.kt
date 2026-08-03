@@ -4,26 +4,29 @@ import javafx.fxml.FXML
 import javafx.geometry.Pos
 import javafx.scene.control.ListCell
 import javafx.scene.control.ListView
-import java.util.ResourceBundle
+import javafx.scene.image.ImageView
 
-/** Emoji strip: one row of the bundled palette; clicking one hands it to [onPick]. */
+/** Emoji strip: one row of the bundled color palette; clicking one hands it to [onPick]. */
 class EmojiPickerController(
     private val onPick: (String) -> Unit,
 ) {
     @FXML private lateinit var emojiList: ListView<String>
 
-    private val bundle = ResourceBundle.getBundle("org.server.anonymous.emojis")
-
     @Suppress("UnusedPrivateMember") // invoked reflectively by FXML
     @FXML
     private fun initialize() {
-        val emojis = bundle.getString("emoji.list").split(" ").filter { it.isNotBlank() }
-        emojiList.items.setAll(emojis)
+        emojiList.items.setAll(EmojiImages.emojis)
         emojiList.setCellFactory {
             object : ListCell<String>() {
+                private val view = ImageView()
+
                 init {
                     styleClass.add("emoji-cell")
                     alignment = Pos.CENTER
+                    graphic = view
+                    view.fitHeight = 26.0
+                    view.fitWidth = 26.0
+                    view.setPreserveRatio(true)
                 }
 
                 override fun updateItem(
@@ -31,7 +34,7 @@ class EmojiPickerController(
                     empty: Boolean,
                 ) {
                     super.updateItem(item, empty)
-                    text = if (empty || item == null) null else item
+                    view.image = if (empty || item == null) null else EmojiImages.imageOf(item)
                 }
             }
         }
