@@ -7,7 +7,7 @@
 <?import javafx.scene.shape.Circle?>
 <VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="org.server.anonymous.controller.IdentityController"
-      styleClass="identity-view" alignment="TOP_CENTER" spacing="12.0" maxWidth="560.0">
+      styleClass="identity-view" alignment="TOP_CENTER" spacing="12.0" maxWidth="Infinity">
     <ImageView fx:id="logoImage" fitHeight="110.0" preserveRatio="true"/>
     <Label text="%app.name" styleClass="identity-title"/>
     <Label text="%app.tagline" styleClass="muted-text"/>
@@ -36,7 +36,7 @@
 
     <VBox styleClass="settings-box" spacing="4.0" maxWidth="Infinity">
         <Label text="%identity.backup" styleClass="label-caption"/>
-        <Label text="%identity.backup.hint" styleClass="muted-text" wrapText="true"/>
+        <Label text="%identity.backup.hint" styleClass="muted-text" wrapText="true" maxWidth="Infinity"/>
         <HBox spacing="8.0">
             <Button text="%identity.backup" onAction="#onBackupClicked"
                     styleClass="ghost-button" HBox.hgrow="ALWAYS" maxWidth="Infinity" mnemonicParsing="false"/>

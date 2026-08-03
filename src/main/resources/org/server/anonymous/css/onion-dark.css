@@ -133,8 +133,8 @@
    visible on the dark theme. */
 .icon-chip {
     -fx-background-color: white;
-    -fx-background-radius: 5;
-    -fx-padding: 2;
+    -fx-background-radius: 6;
+    -fx-padding: 4;
     -fx-alignment: center;
 }
 
@@ -152,3 +152,7 @@
     -fx-background-color: transparent;
     -fx-padding: 0;
 }
+
+/* Settings page scrolls instead of squeezing wrapped text when the window is short. */
+.settings-scroll { -fx-background-color: transparent; -fx-background-insets: 0; -fx-padding: 0; }
+.settings-scroll > .viewport { -fx-background-color: transparent; }

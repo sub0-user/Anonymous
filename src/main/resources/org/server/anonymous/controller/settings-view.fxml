@@ -1,134 +1,140 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.Tooltip?>
 <?import javafx.scene.image.Image?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
-<VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
-      fx:controller="org.server.anonymous.controller.SettingsController"
-      styleClass="identity-view" alignment="TOP_LEFT" spacing="12.0" maxWidth="560.0">
-    <Label text="%settings.title" styleClass="identity-title"/>
-    <VBox spacing="4.0">
-        <Label text="%settings.node_status" styleClass="label-caption"/>
-        <Label fx:id="nodeStatusLabel"/>
-    </VBox>
-    <VBox spacing="4.0">
-        <Label text="%settings.data_directory" styleClass="label-caption"/>
-        <Label fx:id="dataDirectoryLabel" styleClass="mono"/>
-    </VBox>
-    <VBox spacing="4.0">
-        <Label text="%settings.version" styleClass="label-caption"/>
-        <Label fx:id="versionLabel" styleClass="muted-text"/>
-    </VBox>
-
-    <VBox spacing="6.0" styleClass="settings-box" maxWidth="Infinity">
-        <Label text="%settings.rules" styleClass="label-caption"/>
-        <Label text="%settings.rules.hint" styleClass="muted-text"/>
-        <Label text="%rules.number" styleClass="muted-text" wrapText="true"/>
-        <Label text="%rules.encryption" styleClass="muted-text" wrapText="true"/>
-        <Label text="%rules.no_server" styleClass="muted-text" wrapText="true"/>
-        <Label text="%rules.no_files" styleClass="muted-text" wrapText="true"/>
-        <Label text="%rules.requests" styleClass="muted-text" wrapText="true"/>
-        <Label text="%rules.verify" styleClass="muted-text" wrapText="true"/>
-        <Label text="%rules.invites" styleClass="muted-text" wrapText="true"/>
-        <Label text="%rules.rooms" styleClass="muted-text" wrapText="true"/>
-    </VBox>
-
-    <VBox spacing="6.0" styleClass="settings-box" maxWidth="Infinity">
-        <Label text="%settings.guide" styleClass="label-caption"/>
-        <Label text="%settings.guide.hint" styleClass="muted-text"/>
-        <Label text="%guide.one" styleClass="muted-text" wrapText="true"/>
-        <Label text="%guide.two" styleClass="muted-text" wrapText="true"/>
-        <Label text="%guide.three" styleClass="muted-text" wrapText="true"/>
-        <Label text="%guide.four" styleClass="muted-text" wrapText="true"/>
-        <Label text="%guide.five" styleClass="muted-text" wrapText="true"/>
-        <Label text="%guide.six" styleClass="muted-text" wrapText="true"/>
-    </VBox>
-
-    <VBox spacing="6.0" styleClass="settings-box" maxWidth="Infinity">
-        <Label text="%settings.connect" styleClass="label-caption"/>
-        <Label text="%settings.connect.hint" styleClass="muted-text" wrapText="true"/>
-        <HBox spacing="8.0">
-            <Button onAction="#onXClicked" styleClass="ghost-button" mnemonicParsing="false">
+<ScrollPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="org.server.anonymous.controller.SettingsController"
+            fitToWidth="true" styleClass="settings-scroll" hbarPolicy="NEVER"
+            maxWidth="Infinity" maxHeight="Infinity">
+    <content>
+        <VBox styleClass="identity-view" alignment="TOP_LEFT" spacing="12.0" maxWidth="Infinity">
+        <Label text="%settings.title" styleClass="identity-title"/>
+        <VBox spacing="4.0">
+            <Label text="%settings.node_status" styleClass="label-caption"/>
+            <Label fx:id="nodeStatusLabel"/>
+        </VBox>
+        <VBox spacing="4.0">
+            <Label text="%settings.data_directory" styleClass="label-caption"/>
+            <Label fx:id="dataDirectoryLabel" styleClass="mono"/>
+        </VBox>
+        <VBox spacing="4.0">
+            <Label text="%settings.version" styleClass="label-caption"/>
+            <Label fx:id="versionLabel" styleClass="muted-text"/>
+        </VBox>
+    
+        <VBox spacing="6.0" styleClass="settings-box" maxWidth="Infinity">
+            <Label text="%settings.rules" styleClass="label-caption"/>
+            <Label text="%settings.rules.hint" styleClass="muted-text"/>
+            <Label text="%rules.number" styleClass="muted-text" wrapText="true" maxWidth="Infinity"/>
+            <Label text="%rules.encryption" styleClass="muted-text" wrapText="true" maxWidth="Infinity"/>
+            <Label text="%rules.no_server" styleClass="muted-text" wrapText="true" maxWidth="Infinity"/>
+            <Label text="%rules.no_files" styleClass="muted-text" wrapText="true" maxWidth="Infinity"/>
+            <Label text="%rules.requests" styleClass="muted-text" wrapText="true" maxWidth="Infinity"/>
+            <Label text="%rules.verify" styleClass="muted-text" wrapText="true" maxWidth="Infinity"/>
+            <Label text="%rules.invites" styleClass="muted-text" wrapText="true" maxWidth="Infinity"/>
+            <Label text="%rules.rooms" styleClass="muted-text" wrapText="true" maxWidth="Infinity"/>
+        </VBox>
+    
+        <VBox spacing="6.0" styleClass="settings-box" maxWidth="Infinity">
+            <Label text="%settings.guide" styleClass="label-caption"/>
+            <Label text="%settings.guide.hint" styleClass="muted-text"/>
+            <Label text="%guide.one" styleClass="muted-text" wrapText="true" maxWidth="Infinity"/>
+            <Label text="%guide.two" styleClass="muted-text" wrapText="true" maxWidth="Infinity"/>
+            <Label text="%guide.three" styleClass="muted-text" wrapText="true" maxWidth="Infinity"/>
+            <Label text="%guide.four" styleClass="muted-text" wrapText="true" maxWidth="Infinity"/>
+            <Label text="%guide.five" styleClass="muted-text" wrapText="true" maxWidth="Infinity"/>
+            <Label text="%guide.six" styleClass="muted-text" wrapText="true" maxWidth="Infinity"/>
+        </VBox>
+    
+        <VBox spacing="6.0" styleClass="settings-box" maxWidth="Infinity">
+            <Label text="%settings.connect" styleClass="label-caption"/>
+            <Label text="%settings.connect.hint" styleClass="muted-text" wrapText="true" maxWidth="Infinity"/>
+            <HBox spacing="8.0">
+                <Button onAction="#onXClicked" styleClass="ghost-button" mnemonicParsing="false">
+                    <graphic>
+                        <StackPane styleClass="icon-chip">
+                            <ImageView fitHeight="32.0" preserveRatio="true">
+                                <image>
+                                    <Image url="@../logo/twitter.png"/>
+                                </image>
+                            </ImageView>
+                        </StackPane>
+                    </graphic>
+                    <tooltip>
+                        <Tooltip text="%settings.social.x"/>
+                    </tooltip>
+                </Button>
+                <Button onAction="#onGitHubClicked" styleClass="ghost-button" mnemonicParsing="false">
+                    <graphic>
+                        <StackPane styleClass="icon-chip">
+                            <ImageView fitHeight="32.0" preserveRatio="true">
+                                <image>
+                                    <Image url="@../logo/github.png"/>
+                                </image>
+                            </ImageView>
+                        </StackPane>
+                    </graphic>
+                    <tooltip>
+                        <Tooltip text="%settings.social.github"/>
+                    </tooltip>
+                </Button>
+                <Button onAction="#onYouTubeClicked" styleClass="ghost-button" mnemonicParsing="false">
+                    <graphic>
+                        <StackPane styleClass="icon-chip">
+                            <ImageView fitHeight="32.0" preserveRatio="true">
+                                <image>
+                                    <Image url="@../logo/youtube.png"/>
+                                </image>
+                            </ImageView>
+                        </StackPane>
+                    </graphic>
+                    <tooltip>
+                        <Tooltip text="%settings.social.youtube"/>
+                    </tooltip>
+                </Button>
+                <Button onAction="#onInstagramClicked" styleClass="ghost-button" mnemonicParsing="false">
+                    <graphic>
+                        <StackPane styleClass="icon-chip">
+                            <ImageView fitHeight="32.0" preserveRatio="true">
+                                <image>
+                                    <Image url="@../logo/instagram.png"/>
+                                </image>
+                            </ImageView>
+                        </StackPane>
+                    </graphic>
+                    <tooltip>
+                        <Tooltip text="%settings.social.instagram"/>
+                    </tooltip>
+                </Button>
+            </HBox>
+            <Label text="%settings.connect.out" styleClass="muted-text" wrapText="true" maxWidth="Infinity"/>
+        </VBox>
+    
+        <VBox spacing="6.0" styleClass="settings-box" maxWidth="Infinity">
+            <Label text="%settings.support" styleClass="label-caption"/>
+            <Label text="%settings.support.hint" styleClass="muted-text" wrapText="true" maxWidth="Infinity"/>
+            <Button onAction="#onDonateClicked" styleClass="accent-button" mnemonicParsing="false">
                 <graphic>
                     <StackPane styleClass="icon-chip">
-                        <ImageView fitHeight="16.0" preserveRatio="true">
+                        <ImageView fitHeight="32.0" preserveRatio="true">
                             <image>
-                                <Image url="@../logo/twitter.png"/>
+                                <Image url="@../logo/donation.png"/>
                             </image>
                         </ImageView>
                     </StackPane>
-                </graphic>
-                <tooltip>
-                    <Tooltip text="%settings.social.x"/>
-                </tooltip>
-            </Button>
-            <Button onAction="#onGitHubClicked" styleClass="ghost-button" mnemonicParsing="false">
-                <graphic>
-                    <StackPane styleClass="icon-chip">
-                        <ImageView fitHeight="16.0" preserveRatio="true">
-                            <image>
-                                <Image url="@../logo/github.png"/>
-                            </image>
-                        </ImageView>
-                    </StackPane>
-                </graphic>
-                <tooltip>
-                    <Tooltip text="%settings.social.github"/>
-                </tooltip>
-            </Button>
-            <Button onAction="#onYouTubeClicked" styleClass="ghost-button" mnemonicParsing="false">
-                <graphic>
-                    <StackPane styleClass="icon-chip">
-                        <ImageView fitHeight="16.0" preserveRatio="true">
-                            <image>
-                                <Image url="@../logo/youtube.png"/>
-                            </image>
-                        </ImageView>
-                    </StackPane>
-                </graphic>
-                <tooltip>
-                    <Tooltip text="%settings.social.youtube"/>
-                </tooltip>
-            </Button>
-            <Button onAction="#onInstagramClicked" styleClass="ghost-button" mnemonicParsing="false">
-                <graphic>
-                    <StackPane styleClass="icon-chip">
-                        <ImageView fitHeight="16.0" preserveRatio="true">
-                            <image>
-                                <Image url="@../logo/instagram.png"/>
-                            </image>
-                        </ImageView>
-                    </StackPane>
-                </graphic>
-                <tooltip>
-                    <Tooltip text="%settings.social.instagram"/>
-                </tooltip>
-            </Button>
-        </HBox>
-        <Label text="%settings.connect.out" styleClass="muted-text" wrapText="true"/>
-    </VBox>
-
-    <VBox spacing="6.0" styleClass="settings-box" maxWidth="Infinity">
-        <Label text="%settings.support" styleClass="label-caption"/>
-        <Label text="%settings.support.hint" styleClass="muted-text" wrapText="true"/>
-        <Button onAction="#onDonateClicked" styleClass="accent-button" mnemonicParsing="false">
-            <graphic>
-                <StackPane styleClass="icon-chip">
-                    <ImageView fitHeight="16.0" preserveRatio="true">
-                        <image>
-                            <Image url="@../logo/donation.png"/>
-                        </image>
-                    </ImageView>
-                </StackPane>
             </graphic>
             <tooltip>
                 <Tooltip text="%settings.support.donate"/>
             </tooltip>
         </Button>
-        <Label text="%settings.support.after" styleClass="muted-text" wrapText="true"/>
+        <Label text="%settings.support.after" styleClass="muted-text" wrapText="true" maxWidth="Infinity"/>
+        </VBox>
     </VBox>
-</VBox>
+    </content>
+</ScrollPane>
