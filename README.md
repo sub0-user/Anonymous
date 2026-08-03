@@ -18,10 +18,12 @@ Tor binary — one self-contained app, nothing to install or configure.
 
 ## Demo
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/RSf1IIaImv4"
-        title="Anonymous v1.0 — your own private messenger, no servers, no tracking (walkthrough)"
-        frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media;
-        gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=RSf1IIaImv4">
+    <img src="https://img.youtube.com/vi/RSf1IIaImv4/maxresdefault.jpg"
+         alt="Anonymous v1.0 — your own private messenger, no servers, no tracking (walkthrough)" width="560"/>
+  </a>
+</p>
 
 Full walkthrough: creating your identity, adding a contact, 1:1 chat, creating a
 group, adding members, replying to a specific message, and more.
