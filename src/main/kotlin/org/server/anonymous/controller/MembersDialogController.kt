@@ -39,7 +39,7 @@ class MembersDialogController(
 
     private fun onRename(member: RoomMember) {
         val newName = askName(bundle.getString("room.member.rename") + ": " + member.name) ?: return
-        if (viewModel.renameMember(member, newName)) refresh()
+        viewModel.renameMember(member, newName) { ok -> if (ok) refresh() }
     }
 
     private fun onRemove(member: RoomMember) {
@@ -49,7 +49,7 @@ class MembersDialogController(
                 bundle.getString("room.member.remove.confirm") + " " + member.name + "?",
             )
         if (confirm.showAndWait().filter { it == ButtonType.OK }.isPresent) {
-            if (viewModel.removeMember(member)) refresh()
+            viewModel.removeMember(member) { ok -> if (ok) refresh() }
         }
     }
 

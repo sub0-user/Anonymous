@@ -30,6 +30,15 @@ class RoomChatViewModelTest {
             { _, _, _, _ -> true },
         )
 
+    private fun awaitUntil(condition: () -> Boolean) {
+        val deadline = System.currentTimeMillis() + 5_000
+        while (System.currentTimeMillis() < deadline) {
+            if (condition()) return
+            Thread.sleep(20)
+        }
+        error("condition not met within 5s")
+    }
+
     @Test
     fun `sendInvite delivers the invite as a chat message to the contact`() {
         val messageService = InMemoryMessageService()
@@ -71,10 +80,46 @@ class RoomChatViewModelTest {
             assertTrue(vm.replyBarLabel.get().startsWith("Replying to You"))
             vm.draft.set("the answer")
             vm.send()
+            awaitUntil { messenger.messagesFor(0L).size == 2 }
             val sent = messenger.messagesFor(0L).last()
             assertEquals("the answer", sent.body)
             assertEquals("the question", sent.replyTo!!.text)
             assertNull(vm.replyingTo.get())
+        }
+    }
+
+    @Test
+    fun `send clears the composer immediately and never blocks the caller`() {
+        JavaFxTestSupport.onFxThread {
+            val store =
+                RoomStore(Files.createTempDirectory("anonymous-room-vm-send").also { it.toFile().deleteOnExit() })
+            val keys = IdentityKeys.x25519KeyPairFromSeed(ByteArray(32) { 9 })
+            store.save(
+                RoomRecord(
+                    id = 0L,
+                    name = "dev den",
+                    type = RoomType.PRIVATE,
+                    isFounder = false,
+                    founderAddress = "a".repeat(56) + ".onion",
+                    founderPublicKey = keys.publicKey,
+                    serviceSeed = ByteArray(0),
+                    serviceAddress = "c".repeat(56) + ".onion",
+                    roomKey = ByteArray(32) { 3 },
+                    keyVersion = 1,
+                    entryKey = null,
+                    myName = "me",
+                    members = listOf(RoomMember(keys.publicKey, "me")),
+                ),
+            )
+            val messenger =
+                RoomMessenger(store, { Identity(ByteArray(32) { 9 }, Instant.now()) }, { _, _, _, _ -> true })
+            val vm = RoomChatViewModel(messenger, null, 0L, { emptyList() })
+            vm.draft.set("hello")
+            vm.send()
+            // The composer clears synchronously even though delivery is queued off-thread.
+            assertEquals("", vm.draft.get())
+            awaitUntil { messenger.messagesFor(0L).size == 1 }
+            assertEquals("hello", messenger.messagesFor(0L).single().body)
         }
     }
 

@@ -140,10 +140,18 @@ class MainController(
         dialog.title = bundle.getString("room.join.accept")
         val joinType = ButtonType(bundle.getString("dialog.join"), ButtonBar.ButtonData.OK_DONE)
         dialog.dialogPane.buttonTypes.add(joinType)
-        dialog.dialogPane.lookupButton(joinType).addEventFilter(ActionEvent.ACTION) { event ->
+        val joinButton = dialog.dialogPane.lookupButton(joinType)
+        joinButton.disableProperty().bind(viewModel.busy)
+        joinButton.addEventFilter(ActionEvent.ACTION) { event ->
+            // Joining contacts the room host over Tor — run it off the FX thread and close
+            // via result when it succeeds, so an unreachable host never freezes the window.
+            event.consume()
             viewModel.acceptAndJoin()
-            if (viewModel.result.get() !is OpResult.Success) {
-                event.consume()
+        }
+        viewModel.result.addListener { _, _, new ->
+            if (new is OpResult.Success) {
+                dialog.setResult(new.value)
+                dialog.hide()
             }
         }
         dialog.setResultConverter { _ -> (viewModel.result.get() as? OpResult.Success)?.value }

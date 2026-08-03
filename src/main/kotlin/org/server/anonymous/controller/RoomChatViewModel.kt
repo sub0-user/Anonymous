@@ -17,6 +17,7 @@ import org.server.anonymous.business.model.RoomMember
 import org.server.anonymous.business.model.RoomMessageItem
 import org.server.anonymous.business.model.RoomRecord
 import java.util.ResourceBundle
+import java.util.concurrent.Executors
 
 /** One open room chat: message list, room header, and (for the founder) member actions. */
 @Suppress("TooManyFunctions") // one cohesive surface over a small fixed action set
@@ -40,6 +41,14 @@ class RoomChatViewModel(
     val replyBarLabel = SimpleStringProperty("")
 
     private val bundle = ResourceBundle.getBundle("org.server.anonymous.messages")
+
+    /**
+     * Room fan-out and control delivery contact other members over Tor, which can block for
+     * up to [org.server.anonymous.business.TorSocket.CONNECT_TIMEOUT_MS] per unreachable
+     * member — so every network room action runs here, never on the FX thread.
+     */
+    private val ioExecutor =
+        Executors.newSingleThreadExecutor { r -> Thread(r, "room-io").apply { isDaemon = true } }
 
     val isFounder: Boolean
         get() = currentRoom()?.isFounder == true
@@ -71,18 +80,25 @@ class RoomChatViewModel(
         val body = draft.get().trim()
         if (body.isEmpty()) return
         val reply = replyingTo.get()
-        when (val result = roomMessenger.sendMessage(roomId, body, reply?.let { replyRefFor(it) })) {
-            is OpResult.Failure -> sendFeedback.set(result.reason)
-            is OpResult.Success -> {
-                draft.set("")
-                clearReply()
-                val recipients = (members().count { it.status == MemberStatus.MEMBER } - 1).coerceAtLeast(0)
-                if (result.value < recipients) {
-                    sendFeedback.set("sent to ${result.value} of $recipients members")
+        // Clear the composer immediately; the fan-out runs off the FX thread so a slow or
+        // offline member can never freeze the window.
+        draft.set("")
+        clearReply()
+        ioExecutor.execute {
+            val result = roomMessenger.sendMessage(roomId, body, reply?.let { replyRefFor(it) })
+            Platform.runLater {
+                when (result) {
+                    is OpResult.Failure -> sendFeedback.set(result.reason)
+                    is OpResult.Success -> {
+                        val recipients = (members().count { it.status == MemberStatus.MEMBER } - 1).coerceAtLeast(0)
+                        if (result.value < recipients) {
+                            sendFeedback.set("sent to ${result.value} of $recipients members")
+                        }
+                    }
                 }
+                sync()
             }
         }
-        sync()
     }
 
     /** Starts a reply to [item]; the composer bar shows until the reply is sent or dismissed. */
@@ -166,25 +182,49 @@ class RoomChatViewModel(
         }
     }
 
-    fun removeMember(member: RoomMember): Boolean {
-        val ok = roomHost?.kickMember(roomId, member.publicKey) == true
-        sync()
-        return ok
+    /** Kicks [member] off the FX thread; [onDone] runs on the FX thread when finished. */
+    fun removeMember(
+        member: RoomMember,
+        onDone: (Boolean) -> Unit = {},
+    ) {
+        ioExecutor.execute {
+            val ok = roomHost?.kickMember(roomId, member.publicKey) == true
+            Platform.runLater {
+                sync()
+                onDone(ok)
+            }
+        }
     }
 
-    /** Member exits the room: sends LEAVE and drops the local record. */
-    fun leaveRoom(): Boolean = roomMessenger.leaveRoom(roomId)
+    /** Member exits the room off the FX thread; [onDone] runs on the FX thread. */
+    fun leaveRoom(onDone: (Boolean) -> Unit = {}) {
+        ioExecutor.execute {
+            val ok = roomMessenger.leaveRoom(roomId)
+            Platform.runLater { onDone(ok) }
+        }
+    }
 
-    /** Founder tears the room down: onion service removed and the record deleted. */
-    fun deleteRoom(): Boolean = roomHost?.deleteRoom(roomId) == true
+    /** Founder tears the room down off the FX thread; [onDone] runs on the FX thread. */
+    fun deleteRoom(onDone: (Boolean) -> Unit = {}) {
+        ioExecutor.execute {
+            val ok = roomHost?.deleteRoom(roomId) == true
+            Platform.runLater { onDone(ok) }
+        }
+    }
 
+    /** Renames [member] off the FX thread; [onDone] runs on the FX thread when finished. */
     fun renameMember(
         member: RoomMember,
         newName: String,
-    ): Boolean {
-        val ok = roomHost?.renameMember(roomId, member.publicKey, newName) == true
-        sync()
-        return ok
+        onDone: (Boolean) -> Unit = {},
+    ) {
+        ioExecutor.execute {
+            val ok = roomHost?.renameMember(roomId, member.publicKey, newName) == true
+            Platform.runLater {
+                sync()
+                onDone(ok)
+            }
+        }
     }
 
     private fun currentRoom(): RoomRecord? = roomMessenger.rooms().firstOrNull { it.id == roomId }

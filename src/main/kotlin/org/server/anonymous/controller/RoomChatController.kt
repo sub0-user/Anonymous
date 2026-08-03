@@ -1,5 +1,6 @@
 package org.server.anonymous.controller
 
+import javafx.collections.ListChangeListener
 import javafx.event.ActionEvent
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
@@ -73,6 +74,12 @@ class RoomChatController(
         membersButton.managedProperty().bind(viewModel.founderVisible)
         deleteButton.visibleProperty().bind(viewModel.founderVisible)
         deleteButton.managedProperty().bind(viewModel.founderVisible)
+        // Sends are delivered off the FX thread, so scroll when the list actually changes.
+        viewModel.messages.addListener(
+            ListChangeListener<RoomMessageItem> {
+                messageList.scrollTo((viewModel.messages.size - 1).coerceAtLeast(0))
+            },
+        )
         messageList.scrollTo((viewModel.messages.size - 1).coerceAtLeast(0))
     }
 
@@ -157,7 +164,7 @@ class RoomChatController(
         val dialog = Alert(Alert.AlertType.CONFIRMATION, message)
         dialog.title = bundle.getString("room.leave")
         val confirmed = dialog.showAndWait().filter { it == ButtonType.OK }.isPresent
-        if (confirmed && viewModel.leaveRoom()) onRoomLeft()
+        if (confirmed) viewModel.leaveRoom { ok -> if (ok) onRoomLeft() }
     }
 
     @FXML
@@ -166,6 +173,6 @@ class RoomChatController(
         val dialog = Alert(Alert.AlertType.CONFIRMATION, message)
         dialog.title = bundle.getString("room.delete")
         val confirmed = dialog.showAndWait().filter { it == ButtonType.OK }.isPresent
-        if (confirmed && viewModel.deleteRoom()) onRoomLeft()
+        if (confirmed) viewModel.deleteRoom { ok -> if (ok) onRoomLeft() }
     }
 }
