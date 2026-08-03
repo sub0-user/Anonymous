@@ -1,6 +1,7 @@
 package org.server.anonymous.controller
 
 import javafx.scene.input.Clipboard
+import javafx.scene.text.Text
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -8,6 +9,7 @@ import org.junit.jupiter.api.Test
 import org.server.anonymous.business.model.MessageDirection
 import org.server.anonymous.business.model.MessageItem
 import org.server.anonymous.business.model.MessageStatus
+import org.server.anonymous.business.model.ReplyRef
 import org.server.anonymous.ui.JavaFxTestSupport
 
 class MessageBubbleCellTest {
@@ -52,10 +54,40 @@ class MessageBubbleCellTest {
     fun `clicking join forwards the invite text`() =
         JavaFxTestSupport.onFxThread {
             var captured: String? = null
-            val cell = MessageBubbleCell { captured = it }
+            val cell = MessageBubbleCell(onJoinInvite = { captured = it })
             cell.render(item(MessageDirection.IN, "inv4p:xyz"))
             cell.joinButton.fire()
             assertEquals("inv4p:xyz", captured)
+        }
+
+    @Test
+    fun `reply menu fires onReply with the message`() =
+        JavaFxTestSupport.onFxThread {
+            var replied: MessageItem? = null
+            val cell = MessageBubbleCell(onReply = { replied = it })
+            val target = item(MessageDirection.IN, "hello world")
+            cell.render(target)
+            cell.contextMenu.items[1].fire()
+            assertEquals(target, replied)
+        }
+
+    @Test
+    fun `reply bubble shows the quoted preview above the body`() =
+        JavaFxTestSupport.onFxThread {
+            val cell = MessageBubbleCell()
+            val withReply =
+                MessageItem(
+                    1,
+                    MessageDirection.IN,
+                    "answer",
+                    MessageStatus.DELIVERED,
+                    "10:00",
+                    ReplyRef(senderName = "raven", text = "the question"),
+                )
+            cell.render(withReply)
+            val quote = cell.bodyFlow.children[0] as Text
+            assertTrue(quote.styleClass.contains("reply-quote"))
+            assertEquals("↩ raven: the question", quote.text.trim())
         }
 
     @Test

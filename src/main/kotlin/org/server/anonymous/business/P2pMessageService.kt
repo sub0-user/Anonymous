@@ -102,6 +102,7 @@ class P2pMessageService(
     override fun send(
         contactId: Long,
         body: String,
+        replyTo: org.server.anonymous.business.model.ReplyRef?,
     ): OpResult<MessageItem> {
         val trimmed = body.trim()
         val contact = contactService.listContacts().firstOrNull { it.id == contactId }
@@ -113,7 +114,7 @@ class P2pMessageService(
                 else -> null
             }
         if (failure != null) return OpResult.Failure(failure)
-        val message = MessageItem(nextId(), MessageDirection.OUT, trimmed, MessageStatus.SENT, nowLabel())
+        val message = MessageItem(nextId(), MessageDirection.OUT, trimmed, MessageStatus.SENT, nowLabel(), replyTo)
         synchronized(store) { store.getOrPut(contactId) { mutableListOf() } += message }
         messageHistory?.append(contactId, message)
         notify(message)
@@ -281,7 +282,7 @@ class P2pMessageService(
                 return DeliveryOutcome.PERMANENT
             }
             contactService.bindPeerKey(contact.id, session.peerPublicKey)
-            session.sendMessage(WireProtocol.CONTENT_TEXT.toByte(), message.body.toByteArray())
+            session.sendMessage(WireProtocol.CONTENT_TEXT.toByte(), ReplyCodec.encode(message.body, message.replyTo))
             return DeliveryOutcome.DELIVERED
         } finally {
             session.close()
@@ -337,11 +338,11 @@ class P2pMessageService(
         session: MessageSession,
         received: ReceivedMessage,
     ) {
-        val text = received.body.toString(Charsets.UTF_8)
+        val (text, replyTo) = ReplyCodec.decode(received.body)
         val contact = contactService.findByAddress(session.peerAddress)
         when {
             contact == null -> contactService.addRequest(session.peerAddress, text.take(64))
-            keyBindingOk(contact, session.peerPublicKey) -> storeInbound(contact, text)
+            keyBindingOk(contact, session.peerPublicKey) -> storeInbound(contact, text, replyTo)
             else -> Unit
         }
     }
@@ -349,8 +350,9 @@ class P2pMessageService(
     private fun storeInbound(
         contact: Contact,
         text: String,
+        replyTo: org.server.anonymous.business.model.ReplyRef?,
     ) {
-        val message = MessageItem(nextId(), MessageDirection.IN, text, MessageStatus.DELIVERED, nowLabel())
+        val message = MessageItem(nextId(), MessageDirection.IN, text, MessageStatus.DELIVERED, nowLabel(), replyTo)
         synchronized(store) { store.getOrPut(contact.id) { mutableListOf() } += message }
         messageHistory?.append(contact.id, message)
         notify(message)

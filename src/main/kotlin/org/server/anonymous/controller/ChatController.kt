@@ -6,6 +6,7 @@ import javafx.scene.control.Button
 import javafx.scene.control.Label
 import javafx.scene.control.ListView
 import javafx.scene.control.TextField
+import javafx.scene.layout.HBox
 import org.server.anonymous.business.model.MessageItem
 import java.util.ResourceBundle
 
@@ -21,6 +22,10 @@ class ChatController(
     @FXML private lateinit var messageList: ListView<MessageItem>
 
     @FXML private lateinit var draftField: TextField
+
+    @FXML private lateinit var replyBar: HBox
+
+    @FXML private lateinit var replyBarLabel: Label
 
     @FXML private lateinit var sendButton: Button
 
@@ -38,8 +43,13 @@ class ChatController(
         titleLabel.textProperty().bind(viewModel.title)
         subtitleLabel.textProperty().bind(viewModel.subtitle)
         messageList.items = viewModel.messages
-        messageList.setCellFactory { MessageBubbleCell(onJoinInvite) }
+        messageList.setCellFactory {
+            MessageBubbleCell(onJoinInvite, onReply = viewModel::replyTo, replyName = viewModel::replyName)
+        }
         draftField.textProperty().bindBidirectional(viewModel.draft)
+        replyBar.visibleProperty().bind(viewModel.replyingTo.isNotNull)
+        replyBar.managedProperty().bind(viewModel.replyingTo.isNotNull)
+        replyBarLabel.textProperty().bind(viewModel.replyBarLabel)
         sendButton.disableProperty().bind(
             Bindings.createBooleanBinding(
                 { draftField.text.isNullOrBlank() },
@@ -66,6 +76,12 @@ class ChatController(
     fun onSendClicked() {
         viewModel.send()
         messageList.scrollTo((viewModel.messages.size - 1).coerceAtLeast(0))
+    }
+
+    @FXML
+    fun onCancelReplyClicked() {
+        viewModel.clearReply()
+        draftField.requestFocus()
     }
 
     @FXML

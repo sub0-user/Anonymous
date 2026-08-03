@@ -35,10 +35,11 @@ class InMemoryMessageService : MessageService {
     override fun send(
         contactId: Long,
         body: String,
+        replyTo: org.server.anonymous.business.model.ReplyRef?,
     ): OpResult<MessageItem> {
         val trimmed = body.trim()
         if (trimmed.isEmpty()) return OpResult.Failure("Message is empty")
-        val message = MessageItem(nextId++, MessageDirection.OUT, trimmed, MessageStatus.SENT, "now")
+        val message = MessageItem(nextId++, MessageDirection.OUT, trimmed, MessageStatus.SENT, "now", replyTo)
         store.getOrPut(contactId) { mutableListOf() } += message
         return OpResult.Success(message)
     }

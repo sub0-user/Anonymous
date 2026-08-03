@@ -41,7 +41,7 @@ class RoomHostTest {
             return "a".repeat(56) + ".onion"
         }
 
-        override fun deleteOnionService(svcAddress: String) {
+        override fun deleteOnionService(address: String) {
             deletedCount++
         }
 

@@ -9,6 +9,7 @@ interface MessageService {
     fun send(
         contactId: Long,
         body: String,
+        replyTo: org.server.anonymous.business.model.ReplyRef? = null,
     ): OpResult<MessageItem>
 
     /**

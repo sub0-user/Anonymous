@@ -9,7 +9,7 @@
     <VBox spacing="2.0">
         <TextFlow fx:id="bodyFlow" styleClass="bubble-text" maxWidth="Infinity"/>
         <Label fx:id="metaLabel" styleClass="bubble-meta" maxWidth="Infinity" alignment="CENTER_RIGHT"/>
-        <Button fx:id="joinButton" text="%room.join.accept" onAction="#onJoinClicked"
+        <Button fx:id="joinButton" text="%room.join.accept"
                 styleClass="ghost-button" mnemonicParsing="false" visible="false" managed="false"/>
     </VBox>
 </HBox>

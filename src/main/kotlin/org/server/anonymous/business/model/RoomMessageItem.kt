@@ -8,4 +8,6 @@ data class RoomMessageItem(
     val body: String,
     val timeLabel: String,
     val isOutgoing: Boolean,
+    /** The message this one replies to, if any. */
+    val replyTo: ReplyRef? = null,
 )

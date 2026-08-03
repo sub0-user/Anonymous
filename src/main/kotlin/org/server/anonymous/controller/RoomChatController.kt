@@ -11,6 +11,7 @@ import javafx.scene.control.Dialog
 import javafx.scene.control.Label
 import javafx.scene.control.ListView
 import javafx.scene.control.TextField
+import javafx.scene.layout.HBox
 import javafx.util.Callback
 import org.server.anonymous.AnonymousApplication
 import org.server.anonymous.business.model.RoomMessageItem
@@ -28,6 +29,10 @@ class RoomChatController(
     @FXML private lateinit var messageList: ListView<RoomMessageItem>
 
     @FXML private lateinit var draftField: TextField
+
+    @FXML private lateinit var replyBar: HBox
+
+    @FXML private lateinit var replyBarLabel: Label
 
     @FXML private lateinit var inviteButton: Button
 
@@ -55,8 +60,13 @@ class RoomChatController(
         feedbackLabel.textProperty().bind(viewModel.sendFeedback)
         inviteFeedbackLabel.textProperty().bind(viewModel.inviteFeedback)
         messageList.items = viewModel.messages
-        messageList.setCellFactory { RoomMessageCell(viewModel::displayNameFor) }
+        messageList.setCellFactory {
+            RoomMessageCell(viewModel::displayNameFor, onReply = viewModel::replyTo, replyName = viewModel::replyName)
+        }
         draftField.textProperty().bindBidirectional(viewModel.draft)
+        replyBar.visibleProperty().bind(viewModel.replyingTo.isNotNull)
+        replyBar.managedProperty().bind(viewModel.replyingTo.isNotNull)
+        replyBarLabel.textProperty().bind(viewModel.replyBarLabel)
         inviteButton.visibleProperty().bind(viewModel.founderVisible)
         inviteButton.managedProperty().bind(viewModel.founderVisible)
         membersButton.visibleProperty().bind(viewModel.founderVisible)
@@ -70,6 +80,12 @@ class RoomChatController(
     fun onSendClicked() {
         viewModel.send()
         messageList.scrollTo((viewModel.messages.size - 1).coerceAtLeast(0))
+    }
+
+    @FXML
+    fun onCancelReplyClicked() {
+        viewModel.clearReply()
+        draftField.requestFocus()
     }
 
     @FXML

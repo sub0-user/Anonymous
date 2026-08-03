@@ -2,15 +2,21 @@ package org.server.anonymous.controller
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.server.anonymous.business.Identity
+import org.server.anonymous.business.IdentityKeys
 import org.server.anonymous.business.InMemoryMessageService
 import org.server.anonymous.business.OnionAddress
 import org.server.anonymous.business.OpResult
 import org.server.anonymous.business.RoomMessenger
 import org.server.anonymous.business.RoomStore
 import org.server.anonymous.business.model.Contact
+import org.server.anonymous.business.model.RoomMember
+import org.server.anonymous.business.model.RoomRecord
+import org.server.anonymous.business.model.RoomType
+import org.server.anonymous.ui.JavaFxTestSupport
 import java.nio.file.Files
 import java.time.Instant
 
@@ -31,6 +37,45 @@ class RoomChatViewModelTest {
         val result = vm.sendInvite(contact, "inv4p:abc")
         assertTrue(result is OpResult.Success)
         assertEquals("inv4p:abc", messageService.messagesFor(contact.id).last().body)
+    }
+
+    @Test
+    fun `reply to a room message attaches the reference on send`() {
+        JavaFxTestSupport.onFxThread {
+            val store =
+                RoomStore(Files.createTempDirectory("anonymous-room-vm-reply").also { it.toFile().deleteOnExit() })
+            val keys = IdentityKeys.x25519KeyPairFromSeed(ByteArray(32) { 9 })
+            store.save(
+                RoomRecord(
+                    id = 0L,
+                    name = "dev den",
+                    type = RoomType.PRIVATE,
+                    isFounder = false,
+                    founderAddress = "a".repeat(56) + ".onion",
+                    founderPublicKey = keys.publicKey,
+                    serviceSeed = ByteArray(0),
+                    serviceAddress = "c".repeat(56) + ".onion",
+                    roomKey = ByteArray(32) { 3 },
+                    keyVersion = 1,
+                    entryKey = null,
+                    myName = "me",
+                    members = listOf(RoomMember(keys.publicKey, "me")),
+                ),
+            )
+            val messenger =
+                RoomMessenger(store, { Identity(ByteArray(32) { 9 }, Instant.now()) }, { _, _, _, _ -> true })
+            messenger.sendMessage(0L, "the question")
+            val vm = RoomChatViewModel(messenger, null, 0L, { emptyList() })
+            val target = vm.messages.first()
+            vm.replyTo(target)
+            assertTrue(vm.replyBarLabel.get().startsWith("Replying to You"))
+            vm.draft.set("the answer")
+            vm.send()
+            val sent = messenger.messagesFor(0L).last()
+            assertEquals("the answer", sent.body)
+            assertEquals("the question", sent.replyTo!!.text)
+            assertNull(vm.replyingTo.get())
+        }
     }
 
     @Test

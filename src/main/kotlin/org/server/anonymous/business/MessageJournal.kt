@@ -1,6 +1,7 @@
 package org.server.anonymous.business
 
 import org.server.anonymous.business.model.MessageItem
+import org.server.anonymous.business.model.ReplyRef
 import org.server.anonymous.business.model.RoomMessageItem
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
@@ -195,7 +196,7 @@ class MessageJournal<T>(
     }
 
     private companion object {
-        val MAGIC = "ANONHIST1".toByteArray(Charsets.US_ASCII)
+        val MAGIC = "ANONHIST2".toByteArray(Charsets.US_ASCII)
         const val MAX_RECORD_LENGTH = 512 * 1024
     }
 }
@@ -214,6 +215,12 @@ object HistoryCodec {
                 out.writeByte(item.direction.ordinal)
                 out.writeByte(item.status.ordinal)
                 out.writeUTF(item.sentAtLabel)
+                out.writeBoolean(item.replyTo != null)
+                item.replyTo?.let { reply ->
+                    writeReplyField(out, reply.senderName)
+                    writeReplyField(out, reply.senderKey)
+                    writeReplyField(out, reply.text)
+                }
                 out.writeInt(item.body.toByteArray(Charsets.UTF_8).size)
                 out.write(item.body.toByteArray(Charsets.UTF_8))
             }
@@ -229,12 +236,22 @@ object HistoryCodec {
                 val direction = org.server.anonymous.business.model.MessageDirection.entries[input.readByte().toInt()]
                 val status = org.server.anonymous.business.model.MessageStatus.entries[input.readByte().toInt()]
                 val sentAtLabel = input.readUTF()
+                val replyTo =
+                    if (input.readBoolean()) {
+                        val name = readReplyField(input)
+                        val key = readReplyBytes(input)
+                        val text = readReplyField(input)
+                        val senderKey = if (key.isEmpty()) null else key
+                        ReplyRef(senderKey, name, text)
+                    } else {
+                        null
+                    }
                 val bodyLength = input.readInt()
                 check(bodyLength >= 0 && bodyLength <= 64 * 1024)
                 val bodyBytes = ByteArray(bodyLength)
                 input.readFully(bodyBytes)
                 val body = String(bodyBytes, Charsets.UTF_8)
-                contactId to MessageItem(id, direction, body, status, sentAtLabel)
+                contactId to MessageItem(id, direction, body, status, sentAtLabel, replyTo)
             }
         }.getOrNull()
 
@@ -251,11 +268,40 @@ object HistoryCodec {
                 out.writeByte(item.senderPublicKey.size)
                 out.write(item.senderPublicKey)
                 out.writeUTF(item.timeLabel)
+                out.writeBoolean(item.replyTo != null)
+                item.replyTo?.let { reply ->
+                    writeReplyField(out, reply.senderName)
+                    writeReplyField(out, reply.senderKey)
+                    writeReplyField(out, reply.text)
+                }
                 out.writeInt(item.body.toByteArray(Charsets.UTF_8).size)
                 out.write(item.body.toByteArray(Charsets.UTF_8))
             }
             bytes.toByteArray()
         }
+
+    /** Writes a reply field as u16 length + bytes (empty when null). */
+    private fun writeReplyField(
+        out: DataOutputStream,
+        value: ByteArray?,
+    ) {
+        val bytes = value ?: ByteArray(0)
+        check(bytes.size <= 0xFFFF) { "reply field too long" }
+        out.writeShort(bytes.size)
+        out.write(bytes)
+    }
+
+    private fun writeReplyField(
+        out: DataOutputStream,
+        value: String?,
+    ) = writeReplyField(out, (value ?: "").toByteArray(Charsets.UTF_8))
+
+    private fun readReplyField(input: DataInputStream): String = String(readReplyBytes(input), Charsets.UTF_8)
+
+    private fun readReplyBytes(input: DataInputStream): ByteArray {
+        val length = input.readUnsignedShort()
+        return ByteArray(length).also { input.readFully(it) }
+    }
 
     /** Deserializes a room message; null when the record is malformed (and so skipped). */
     fun decodeRoomItem(payload: ByteArray): Pair<Long, RoomMessageItem>? =
@@ -268,13 +314,23 @@ object HistoryCodec {
                 check(keyLength in 1..64)
                 val key = ByteArray(keyLength).also { input.readFully(it) }
                 val timeLabel = input.readUTF()
+                val replyTo =
+                    if (input.readBoolean()) {
+                        val name = readReplyField(input)
+                        val replyKey = readReplyBytes(input)
+                        val text = readReplyField(input)
+                        val senderKey = if (replyKey.isEmpty()) null else replyKey
+                        ReplyRef(senderKey, name, text)
+                    } else {
+                        null
+                    }
                 val bodyLength = input.readInt()
                 check(bodyLength >= 0 && bodyLength <= 64 * 1024)
                 val bodyBytes = ByteArray(bodyLength)
                 input.readFully(bodyBytes)
                 val body = String(bodyBytes, Charsets.UTF_8)
                 val message =
-                    RoomMessageItem(id, roomId, key, body, timeLabel, isOutgoing)
+                    RoomMessageItem(id, roomId, key, body, timeLabel, isOutgoing, replyTo)
                 roomId to message
             }
         }.getOrNull()

@@ -3,6 +3,7 @@ package org.server.anonymous.controller
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
 import javafx.geometry.Pos
+import javafx.scene.Node
 import javafx.scene.control.Button
 import javafx.scene.control.ContextMenu
 import javafx.scene.control.Label
@@ -11,10 +12,12 @@ import javafx.scene.control.MenuItem
 import javafx.scene.input.Clipboard
 import javafx.scene.input.ClipboardContent
 import javafx.scene.layout.HBox
+import javafx.scene.text.Text
 import javafx.scene.text.TextFlow
 import org.server.anonymous.business.model.MessageDirection
 import org.server.anonymous.business.model.MessageItem
 import org.server.anonymous.business.model.MessageStatus
+import org.server.anonymous.business.model.ReplyRef
 import java.util.ResourceBundle
 
 /**
@@ -24,10 +27,12 @@ import java.util.ResourceBundle
  */
 class MessageBubbleCell(
     private val onJoinInvite: (String) -> Unit = {},
+    private val onReply: (MessageItem) -> Unit = {},
+    private val replyName: (ReplyRef) -> String = { ref -> ref.senderName ?: "" },
 ) : ListCell<MessageItem>() {
     @FXML private lateinit var bubble: HBox
 
-    @FXML private lateinit var bodyFlow: TextFlow
+    @FXML internal lateinit var bodyFlow: TextFlow // internal: asserted by MessageBubbleCellTest
 
     @FXML private lateinit var metaLabel: Label
 
@@ -38,6 +43,8 @@ class MessageBubbleCell(
     private var currentInvite: String? = null
 
     private var currentBody: String? = null
+
+    private var currentMessage: MessageItem? = null
 
     init {
         val bundle = ResourceBundle.getBundle("org.server.anonymous.messages")
@@ -50,7 +57,12 @@ class MessageBubbleCell(
                 Clipboard.getSystemClipboard().setContent(ClipboardContent().apply { putString(body) })
             }
         }
-        contextMenu = ContextMenu(copyItem)
+        val replyItem = MenuItem(bundle.getString("chat.reply"))
+        replyItem.setOnAction {
+            currentMessage?.let { onReply(it) }
+        }
+        contextMenu = ContextMenu(copyItem, replyItem)
+        joinButton.setOnAction { currentInvite?.let(onJoinInvite) }
     }
 
     override fun updateItem(
@@ -61,10 +73,15 @@ class MessageBubbleCell(
         if (item == null || empty) {
             graphic = null
             currentBody = null
+            currentMessage = null
             return
         }
         currentBody = item.body
-        bodyFlow.children.setAll(EmojiImages.nodesFor(item.body))
+        currentMessage = item
+        val nodes = mutableListOf<Node>()
+        item.replyTo?.let { ref -> nodes += replyNodes(ref) }
+        nodes += EmojiImages.nodesFor(item.body)
+        bodyFlow.children.setAll(nodes)
         metaLabel.text =
             when (item.direction) {
                 MessageDirection.IN -> item.sentAtLabel
@@ -94,10 +111,11 @@ class MessageBubbleCell(
     /** Test seam: renders [item] the way a real list would (ListCell.updateItem is protected). */
     internal fun render(item: MessageItem?) = updateItem(item, false)
 
-    @Suppress("UnusedPrivateMember") // invoked reflectively by FXML
-    @FXML
-    private fun onJoinClicked() {
-        currentInvite?.let(onJoinInvite)
+    /** The quoted "↩ name: preview" header shown above a reply's own text. */
+    private fun replyNodes(ref: ReplyRef): List<Node> {
+        val quote = Text("↩ ${replyName(ref)}: ${ref.text}\n")
+        quote.styleClass.add("reply-quote")
+        return listOf(quote)
     }
 
     private fun String.isRoomInvite(): Boolean = startsWith("inv4p:") || startsWith("inv4u:")

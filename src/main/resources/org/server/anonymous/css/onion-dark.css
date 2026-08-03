@@ -156,3 +156,15 @@
 /* Settings page scrolls instead of squeezing wrapped text when the window is short. */
 .settings-scroll { -fx-background-color: transparent; -fx-background-insets: 0; -fx-padding: 0; }
 .settings-scroll > .viewport { -fx-background-color: transparent; }
+
+/* Reply-to-message: quoted header inside a bubble + the composer's reply bar. */
+.reply-quote {
+    -fx-fill: -muted;
+    -fx-font-style: italic;
+    -fx-font-size: 12px;
+}
+.reply-bar {
+    -fx-background-color: -panel;
+    -fx-border-color: transparent transparent -border transparent;
+    -fx-padding: 6 10;
+}

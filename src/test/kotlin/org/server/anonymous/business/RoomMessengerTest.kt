@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.server.anonymous.business.model.MemberStatus
+import org.server.anonymous.business.model.ReplyRef
 import org.server.anonymous.business.model.RoomMember
 import org.server.anonymous.business.model.RoomRecord
 import org.server.anonymous.business.model.RoomType
@@ -276,6 +277,41 @@ class RoomMessengerTest {
         assertEquals("hey from alice", stored.body)
         assertFalse(stored.isOutgoing)
         assertEquals(1, notified.size)
+    }
+
+    @Test
+    fun `inbound room reply is decrypted with its reference`() {
+        val fx = fixture()
+        val alice = IdentityKeys.x25519KeyPairFromSeed(ByteArray(32) { 21 })
+        fx.store.save(memberRecord())
+        val nonce = SessionCrypto.randomNonce()
+        val ref = ReplyRef(ByteArray(32) { 21 }, "alice", "the question")
+        val body =
+            RoomEnvelope.encodeRoomMessage(
+                RoomEnvelope.RoomMessage(
+                    roomId = roomId,
+                    keyVersion = 1,
+                    nonce = nonce,
+                    ciphertext =
+                        SessionCrypto.encrypt(
+                            roomKey,
+                            nonce,
+                            ReplyCodec.encode("the answer", ref),
+                            RoomEnvelope.roomAad(roomId, 1),
+                        ),
+                ),
+            )
+
+        fx.messenger.handleInbound(
+            alice.publicKey,
+            "b".repeat(56) + ".onion",
+            WireProtocol.CONTENT_ROOM_MSG.toByte(),
+            body,
+        )
+        val stored = fx.messenger.messagesFor(roomId).single()
+        assertEquals("the answer", stored.body)
+        assertArrayEquals(ByteArray(32) { 21 }, stored.replyTo!!.senderKey)
+        assertEquals("the question", stored.replyTo!!.text)
     }
 
     @Test

@@ -2,6 +2,7 @@ package org.server.anonymous.controller
 
 import javafx.application.Platform
 import javafx.beans.property.SimpleBooleanProperty
+import javafx.beans.property.SimpleObjectProperty
 import javafx.beans.property.SimpleStringProperty
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
@@ -11,9 +12,11 @@ import org.server.anonymous.business.RoomHost
 import org.server.anonymous.business.RoomMessenger
 import org.server.anonymous.business.model.Contact
 import org.server.anonymous.business.model.MemberStatus
+import org.server.anonymous.business.model.ReplyRef
 import org.server.anonymous.business.model.RoomMember
 import org.server.anonymous.business.model.RoomMessageItem
 import org.server.anonymous.business.model.RoomRecord
+import java.util.ResourceBundle
 
 /** One open room chat: message list, room header, and (for the founder) member actions. */
 @Suppress("TooManyFunctions") // one cohesive surface over a small fixed action set
@@ -31,6 +34,12 @@ class RoomChatViewModel(
     val sendFeedback = SimpleStringProperty("")
     val inviteFeedback = SimpleStringProperty("")
     val founderVisible = SimpleBooleanProperty(false)
+
+    /** The room message being replied to, if any — shown as a bar above the composer. */
+    val replyingTo = SimpleObjectProperty<RoomMessageItem?>(null)
+    val replyBarLabel = SimpleStringProperty("")
+
+    private val bundle = ResourceBundle.getBundle("org.server.anonymous.messages")
 
     val isFounder: Boolean
         get() = currentRoom()?.isFounder == true
@@ -61,10 +70,12 @@ class RoomChatViewModel(
         sendFeedback.set("")
         val body = draft.get().trim()
         if (body.isEmpty()) return
-        when (val result = roomMessenger.sendMessage(roomId, body)) {
+        val reply = replyingTo.get()
+        when (val result = roomMessenger.sendMessage(roomId, body, reply?.let { replyRefFor(it) })) {
             is OpResult.Failure -> sendFeedback.set(result.reason)
             is OpResult.Success -> {
                 draft.set("")
+                clearReply()
                 val recipients = (members().count { it.status == MemberStatus.MEMBER } - 1).coerceAtLeast(0)
                 if (result.value < recipients) {
                     sendFeedback.set("sent to ${result.value} of $recipients members")
@@ -73,6 +84,37 @@ class RoomChatViewModel(
         }
         sync()
     }
+
+    /** Starts a reply to [item]; the composer bar shows until the reply is sent or dismissed. */
+    fun replyTo(item: RoomMessageItem) {
+        replyingTo.set(item)
+        val template = bundle.getString("chat.reply.bar")
+        replyBarLabel.set(
+            template.replace("{name}", nameFor(item)).replace("{preview}", ReplyRef.previewOf(item.body)),
+        )
+    }
+
+    fun clearReply() {
+        replyingTo.set(null)
+        replyBarLabel.set("")
+    }
+
+    /** Resolves a carried reply reference to a display name (member by key, else the carried name). */
+    fun replyName(ref: ReplyRef): String =
+        ref.senderKey?.let { key -> memberName(key) }
+            ?: ref.senderName?.takeIf { it.isNotBlank() }
+            ?: "?"
+
+    /** Builds the wire reference for a reply to [item] in this room. */
+    private fun replyRefFor(item: RoomMessageItem): ReplyRef =
+        ReplyRef(
+            senderKey = item.senderPublicKey,
+            senderName = nameFor(item),
+            text = ReplyRef.previewOf(item.body),
+        )
+
+    private fun nameFor(item: RoomMessageItem): String =
+        if (item.isOutgoing) bundle.getString("chat.you") else displayNameFor(item.senderPublicKey)
 
     /**
      * Creates the invite for a contact. A contact we have never talked to has no cached key,

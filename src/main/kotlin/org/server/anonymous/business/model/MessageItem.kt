@@ -10,4 +10,6 @@ data class MessageItem(
     val body: String,
     val status: MessageStatus,
     val sentAtLabel: String,
+    /** The message this one replies to, if any. */
+    val replyTo: ReplyRef? = null,
 )

@@ -1,5 +1,6 @@
 package org.server.anonymous.business
 
+import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -7,6 +8,7 @@ import org.junit.jupiter.api.Test
 import org.server.anonymous.business.model.MessageDirection
 import org.server.anonymous.business.model.MessageItem
 import org.server.anonymous.business.model.MessageStatus
+import org.server.anonymous.business.model.ReplyRef
 import org.server.anonymous.business.model.RoomMessageItem
 import java.nio.file.Files
 import java.nio.file.Path
@@ -51,6 +53,46 @@ class MessageJournalTest {
         assertEquals(1, loaded.size)
         assertEquals(42, loaded.single().first)
         assertEquals("room hello", loaded.single().second.body)
+    }
+
+    @Test
+    fun `direct message replies round-trip`() {
+        val file = tempFile()
+        val journal = journal(file, seedA)
+        journal.append(
+            7,
+            item(1, "answer", MessageStatus.DELIVERED, ReplyRef(ByteArray(32) { 5 }, "raven", "question")),
+        )
+
+        val loaded = journal.load()
+        val reply = loaded.single().second.replyTo
+        assertArrayEquals(ByteArray(32) { 5 }, reply!!.senderKey)
+        assertEquals("raven", reply.senderName)
+        assertEquals("question", reply.text)
+        assertEquals("answer", loaded.single().second.body)
+    }
+
+    @Test
+    fun `room message replies round-trip`() {
+        val file = tempFile()
+        val roomJournal = roomJournal(file, seedA)
+        val ref = ReplyRef(ByteArray(32) { 6 }, "alice", "original room text")
+        roomJournal.append(
+            42,
+            RoomMessageItem(1, 42, ByteArray(32) { 3 }, "reply text", "09:01", isOutgoing = false, replyTo = ref),
+        )
+
+        val loaded = roomJournal.load().single().second
+        assertArrayEquals(ByteArray(32) { 6 }, loaded.replyTo!!.senderKey)
+        assertEquals("alice", loaded.replyTo!!.senderName)
+        assertEquals("original room text", loaded.replyTo!!.text)
+    }
+
+    @Test
+    fun `a journal with the pre-reply magic resets to empty`() {
+        val file = tempFile()
+        Files.write(file, "ANONHIST1".toByteArray(Charsets.UTF_8))
+        assertTrue(journal(file, seedA).load().isEmpty())
     }
 
     @Test
@@ -135,7 +177,8 @@ class MessageJournalTest {
         id: Long,
         body: String,
         status: MessageStatus,
-    ): MessageItem = MessageItem(id, MessageDirection.OUT, body, status, "09:00")
+        replyTo: ReplyRef? = null,
+    ): MessageItem = MessageItem(id, MessageDirection.OUT, body, status, "09:00", replyTo)
 
     private fun tempFile(): Path =
         Files.createTempDirectory("anon-journal").resolve("conversations.hist").also {

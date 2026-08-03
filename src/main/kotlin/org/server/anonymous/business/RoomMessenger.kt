@@ -132,12 +132,14 @@ class RoomMessenger(
     fun sendMessage(
         roomId: Long,
         body: String,
+        replyTo: org.server.anonymous.business.model.ReplyRef? = null,
     ): OpResult<Int> {
         val text = body.trim()
         val record = store.loadAll().firstOrNull { it.id == roomId }
         if (text.isEmpty()) return OpResult.Failure("Message is empty")
         if (record == null) return OpResult.Failure("Room not found")
-        val message = RoomMessageItem(nextId(), roomId, keys.publicKey, text, nowLabel(), isOutgoing = true)
+        val message =
+            RoomMessageItem(nextId(), roomId, keys.publicKey, text, nowLabel(), isOutgoing = true, replyTo = replyTo)
         synchronized(messages) { messages.getOrPut(roomId) { mutableListOf() } += message }
         roomHistory?.append(roomId, message)
         notify(message)
@@ -151,7 +153,7 @@ class RoomMessenger(
                         SessionCrypto.encrypt(
                             record.roomKey,
                             SessionCrypto.randomNonce(),
-                            text.toByteArray(Charsets.UTF_8),
+                            ReplyCodec.encode(text, replyTo),
                             RoomEnvelope.roomAad(roomId, record.keyVersion),
                         ),
                 ),
@@ -269,14 +271,16 @@ class RoomMessenger(
                     RoomEnvelope.roomAad(envelope.roomId, envelope.keyVersion),
                 )
             }.getOrNull() ?: return
+        val (text, replyTo) = ReplyCodec.decode(plaintext)
         val message =
             RoomMessageItem(
                 id = nextId(),
                 roomId = record.id,
                 senderPublicKey = peerKey,
-                body = plaintext.toString(Charsets.UTF_8),
+                body = text,
                 timeLabel = nowLabel(),
                 isOutgoing = false,
+                replyTo = replyTo,
             )
         synchronized(messages) { messages.getOrPut(record.id) { mutableListOf() } += message }
         roomHistory?.append(record.id, message)
