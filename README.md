@@ -4,6 +4,8 @@
   <img src="src/main/resources/org/server/anonymous/logo/icon-square.png" alt="Anonymous" width="140"/>
 </p>
 
+[![License: AGPL-3.0-only](https://img.shields.io/badge/License-AGPL--3.0--only-blue.svg)](LICENSE)
+
 **Anonymous** is a decentralized, self-hosted, Tor-based private messenger.
 
 - **No central server.** There is no company hosting your chats — ever.
@@ -98,4 +100,8 @@ on X: [@Sub0_User](https://x.com/Sub0_User).
 
 ## License
 
-TBD — to be chosen by the project owner.
+[GNU Affero General Public License v3.0](LICENSE) (AGPL-3.0-only). Contributions are
+accepted under the same license.
+
+Bundled third-party components: Tor (BSD-3-Clause), Twemoji graphics (CC-BY 4.0,
+© Twitter, Inc. and other contributors).

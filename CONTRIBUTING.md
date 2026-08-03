@@ -6,6 +6,9 @@ messenger (Kotlin + JavaFX on JDK 21).
 **Questions or ideas? Chat with the maintainer on X (Twitter):**
 [@Sub0_User](https://x.com/Sub0_User).
 
+The project is licensed under **AGPL-3.0-only** (see `LICENSE`). By contributing, you
+agree that your contributions are licensed under the same terms.
+
 ## Getting started
 
 1. JDK 21 required.
