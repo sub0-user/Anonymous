@@ -1,5 +1,9 @@
 # Anonymous
 
+<p align="center">
+  <img src="src/main/resources/org/server/anonymous/logo/icon-square.png" alt="Anonymous" width="140"/>
+</p>
+
 **Anonymous** is a decentralized, self-hosted, Tor-based private messenger.
 
 - **No central server.** There is no company hosting your chats — ever.
@@ -14,7 +18,9 @@ Tor binary — one self-contained app, nothing to install or configure.
 
 ## Demo
 
-<video src="video/demo.mp4" controls="true" allowfullscreen="true"></video>
+<video src="https://github.com/sub0-user/Anonymous/raw/main/video/demo.mp4" controls="true" allowfullscreen="true"></video>
+
+> Can't see the player? [Download or watch the demo video](video/demo.mp4).
 
 Full walkthrough: creating your identity, adding a contact, 1:1 chat, creating a
 group, adding members, replying to a specific message, and more.
