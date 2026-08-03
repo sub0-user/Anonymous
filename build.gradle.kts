@@ -200,3 +200,10 @@ jlink {
         jvmArgs = listOf("-Xmx512m", "-Xms64m")
     }
 }
+
+// The beryx jlink pipeline's up-to-date checks can miss new classes/resources — the merged
+// module jar goes stale and the rebuilt zip silently ships the OLD UI (seen in the wild).
+// Always rebuild the image so a fresh build always contains the current code.
+listOf("prepareMergedJarsDir", "createMergedModule", "jlink", "jlinkZip").forEach { name ->
+    tasks.named(name) { outputs.upToDateWhen { false } }
+}
