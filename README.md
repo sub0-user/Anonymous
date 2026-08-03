@@ -12,22 +12,42 @@
 Built with Kotlin on JDK 21, JavaFX (UI defined entirely in FXML + CSS), and a bundled
 Tor binary — one self-contained app, nothing to install or configure.
 
-## Status
+## Demo
 
-v1.0: encrypted text messaging and group chatrooms — identity (your onion
-address is your number), contacts with safety numbers, 1:1 DMs, private and
-public rooms (founder-hosted, client-auth invites, key rotation on removal),
-message history encrypted at rest, offline delivery with retry, and
-passphrase-protected backups that include contacts and rooms. Open source,
-no ads, no trackers, no central server — donations only. Media transfer and
-read receipts are planned for later versions.
+<video src="video/demo.mp4" controls="true" allowfullscreen="true"></video>
 
-## Platforms
+Full walkthrough: creating your identity, adding a contact, 1:1 chat, creating a
+group, adding members, replying to a specific message, and more.
 
-Linux is the primary platform and is fully supported (install via
-`scripts/install.sh`, run via the `anonymous` launcher). Windows install
-scripts exist but are beta — Windows is not yet verified. macOS is not
-currently supported.
+## Version 1.0 — feature complete
+
+v1.0 is the first full release — **Linux only** (see Platforms).
+
+- **Your onion address is your number** — each user runs their own Tor v3 hidden
+  service created inside the app; contacts come with safety numbers.
+- **1:1 encrypted messaging** with offline delivery and automatic retry.
+- **Groups (private & public rooms):**
+  - invite-only — add any trusted contact directly ("Add member"); invites arrive in
+    chat as a message with one-tap **Accept**;
+  - leave or delete rooms, kick members (the room key rotates so the kicked member can
+    no longer read), rename members;
+  - **reply to a specific message** in any chat or group.
+- **Emoji everywhere** — a color emoji picker and inline emoji in bubbles.
+- **Copy message, copy your onion address** — one click each.
+- **History encrypted at rest** — messages (including replies) live only on your
+  machine, encrypted with your identity key.
+- **Passphrase-protected backups** — identity, contacts, rooms, and history.
+- **Privacy by design** — no trackers, no telemetry, no ads, no central server.
+
+### Platforms
+
+v1.0 supports **Linux only** (install with `scripts/install.sh`, run via the
+`anonymous` launcher). Windows and macOS come in later versions.
+
+### Release
+
+- Latest release: https://github.com/sub0-user/Anonymous/releases
+- Tag: `v1.0.0`
 
 ## Build & run
 
@@ -49,6 +69,18 @@ Release build + install (Linux):
 ./gradlew jlinkZip
 bash scripts/install.sh
 ```
+
+## Get in touch
+
+- **X / Twitter:** [@Sub0_User](https://x.com/Sub0_User) — chat with the maintainer
+- GitHub: [sub0-user](https://github.com/sub0-user)
+- YouTube: [Sub0-User](https://www.youtube.com/@Sub0-User)
+- Instagram: [sub0_user](https://www.instagram.com/sub0_user/)
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). Questions or ideas? Chat with the maintainer
+on X: [@Sub0_User](https://x.com/Sub0_User).
 
 ## Documentation
 
