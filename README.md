@@ -18,9 +18,10 @@ Tor binary — one self-contained app, nothing to install or configure.
 
 ## Demo
 
-<video src="https://github.com/sub0-user/Anonymous/raw/main/video/demo.mp4" type="video/mp4" controls="true" allowfullscreen="true"></video>
+[![Anonymous demo walkthrough](video/demo-thumbnail.png)](https://github.com/sub0-user/Anonymous/blob/main/video/demo.mp4)
 
-> Can't see the player? [Download or watch the demo video](video/demo.mp4).
+> Click the image above to play the walkthrough in GitHub's video player, or
+> [download the video file](video/demo.mp4).
 
 Full walkthrough: creating your identity, adding a contact, 1:1 chat, creating a
 group, adding members, replying to a specific message, and more.
