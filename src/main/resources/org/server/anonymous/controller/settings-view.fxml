@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Tooltip?>
 <?import javafx.scene.image.Image?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.HBox?>
@@ -54,50 +55,58 @@
             <Button onAction="#onXClicked" styleClass="ghost-button" mnemonicParsing="false">
                 <graphic>
                     <StackPane styleClass="icon-chip">
-                        <ImageView fitHeight="12.0" preserveRatio="true">
+                        <ImageView fitHeight="16.0" preserveRatio="true">
                             <image>
                                 <Image url="@../logo/twitter.png"/>
                             </image>
                         </ImageView>
                     </StackPane>
                 </graphic>
-                X / Twitter
+                <tooltip>
+                    <Tooltip text="%settings.social.x"/>
+                </tooltip>
             </Button>
             <Button onAction="#onGitHubClicked" styleClass="ghost-button" mnemonicParsing="false">
                 <graphic>
                     <StackPane styleClass="icon-chip">
-                        <ImageView fitHeight="12.0" preserveRatio="true">
+                        <ImageView fitHeight="16.0" preserveRatio="true">
                             <image>
                                 <Image url="@../logo/github.png"/>
                             </image>
                         </ImageView>
                     </StackPane>
                 </graphic>
-                GitHub
+                <tooltip>
+                    <Tooltip text="%settings.social.github"/>
+                </tooltip>
             </Button>
             <Button onAction="#onYouTubeClicked" styleClass="ghost-button" mnemonicParsing="false">
                 <graphic>
                     <StackPane styleClass="icon-chip">
-                        <ImageView fitHeight="12.0" preserveRatio="true">
+                        <ImageView fitHeight="16.0" preserveRatio="true">
                             <image>
                                 <Image url="@../logo/youtube.png"/>
                             </image>
                         </ImageView>
                     </StackPane>
                 </graphic>
-                YouTube
+                <tooltip>
+                    <Tooltip text="%settings.social.youtube"/>
+                </tooltip>
             </Button>
             <Button onAction="#onInstagramClicked" styleClass="ghost-button" mnemonicParsing="false">
                 <graphic>
                     <StackPane styleClass="icon-chip">
-                        <ImageView fitHeight="12.0" preserveRatio="true">
+                        <ImageView fitHeight="16.0" preserveRatio="true">
                             <image>
                                 <Image url="@../logo/instagram.png"/>
                             </image>
                         </ImageView>
                     </StackPane>
                 </graphic>
-                Instagram
+                <tooltip>
+                    <Tooltip text="%settings.social.instagram"/>
+                </tooltip>
             </Button>
         </HBox>
         <Label text="%settings.connect.out" styleClass="muted-text" wrapText="true"/>
@@ -106,18 +115,19 @@
     <VBox spacing="6.0" styleClass="settings-box" maxWidth="Infinity">
         <Label text="%settings.support" styleClass="label-caption"/>
         <Label text="%settings.support.hint" styleClass="muted-text" wrapText="true"/>
-        <Button onAction="#onDonateClicked"
-                styleClass="accent-button" maxWidth="Infinity" mnemonicParsing="false">
+        <Button onAction="#onDonateClicked" styleClass="accent-button" mnemonicParsing="false">
             <graphic>
                 <StackPane styleClass="icon-chip">
-                    <ImageView fitHeight="12.0" preserveRatio="true">
+                    <ImageView fitHeight="16.0" preserveRatio="true">
                         <image>
                             <Image url="@../logo/donation.png"/>
                         </image>
                     </ImageView>
                 </StackPane>
             </graphic>
-            %settings.support.donate
+            <tooltip>
+                <Tooltip text="%settings.support.donate"/>
+            </tooltip>
         </Button>
         <Label text="%settings.support.after" styleClass="muted-text" wrapText="true"/>
     </VBox>
